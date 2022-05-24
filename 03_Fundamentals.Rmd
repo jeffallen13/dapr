@@ -1,0 +1,758 @@
+---
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      fig.align = 'center',
+                      fig.width = 6,
+                      fig.asp = 0.7,
+                      out.width = "70%")
+options(scipen = 999)
+
+```
+
+# R Fundamentals
+
+This chapter introduces fundamental concepts in R that are widely applicable across analytical approaches. We cover data types, data structures, functions, conditional logic, iteration, errors, getting help, and coding style. Knowledge of these topics is needed to use R effectively. This is the only chapter in which we will only use hypothetical data created within R, rather than importing real world data. 
+
+## Data Types
+
+Key data types in R include: numeric, integer, character, factor, logical, and date. The following sub-sections outline high-level properties of each of these.
+
+### Numeric
+
+Data of the numeric class represent numbers. Let's create a numeric object.
+
+```{r dow}
+
+dow.jones <- 35490.69
+
+```
+
+There are a number of important things going on in this short line of code. Specifically, we assign a numeric value to an object named `dow.jones` using the all-important assignment operator: `<-`. The object now appears in your Global Environment, and you can print its value simply by typing its name into the console. 
+
+```{r print-dow}
+
+dow.jones
+
+```
+
+We can confirm that `dow.jones` is numeric by looking at its class using the `class()` function or by asking whether it is numeric using the `is.numeric()` function. 
+
+```{r inspect-numeric}
+
+class(dow.jones)
+
+is.numeric(dow.jones)
+
+```
+
+Numeric values are also known as **doubles**. We can confirm this in a similar manner as above. 
+
+```{r}
+
+is.double(dow.jones)
+
+```
+
+### Integer
+
+Integers are similar to numeric values, but they represent whole numbers. You can use the function `as.integer()` to convert an element to an integer. If we convert `dow.jones` to an integer, R lops off the decimals. In other words, it rounds the value down, which is not desirable in all cases, including this one.  
+
+```{r}
+
+as.integer(dow.jones)
+
+```
+
+You can circumvent this behavior by first rounding `dow.jones` using the `round()` function then converting it to an integer. 
+
+```{r}
+
+as.integer(round(dow.jones))
+
+```
+
+Notice that R executes functions from inside out. `round()` is executed before `as.integer()`. Layering multiple functions in this manner is called **nesting**. Nesting can be very useful for writing more efficient code. Be careful not to let nesting get out of hand, though. Your code may become too complex. 
+
+Take a look at `dow.jones` again. 
+
+```{r}
+
+dow.jones
+
+```
+
+It is still in its original, un-rounded form! That is because most functions in R do not automatically modify the objects to which they are applied. If you want to modify `dow.jones`, you need to overwrite, like so: 
+
+```{r}
+
+dow.jones <- as.integer(round(dow.jones))
+
+dow.jones
+
+```
+
+### Character
+
+Characters, which are also known as **strings**, represents textual data. Characters are created using single or double quotations.  
+
+```{r character}
+
+index.1 <- "Dow Jones"
+
+index.1
+
+index.2 <- 'S&P 500'
+
+index.2
+
+```
+
+Ensure `index.1` and `index.2` are characters.
+
+```{r check-character}
+
+class(index.1)
+
+is.character(index.2)
+
+```
+
+You will encounter and work with characters quite often.
+
+### Factor
+
+Known in statistics as **categorical** variables, factors represent groups of data. A factor doesn't have much meaning unless it involves more than one element. Therefore, let's create a vector of characters using the concatenate function `c()` and convert it to a factor using the `factor()` function. Again, we'll use the nesting technique. 
+
+```{r factor-ex}
+
+regions <- factor(c("NE", "SE", "NE", "SW", "SE", "NW", "NW", "SW"))
+
+```
+
+A number of functions are useful for inspecting factors.
+
+```{r factor-review}
+
+class(regions)
+
+str(regions)
+
+levels(regions)
+
+summary(regions)
+
+```
+
+Factors are one of the most complex data types in R and require a good deal of care. Underneath their labels, factors are encoded with integers. If you aren't paying close attention, this can lead to unexpected results. Additionally, for many factors, order has meaning. That is, they are ordinal. For example, in a factor variable capturing income groups, the label "high-income" should rank above the label "low-income." If you don't specify this pattern, R may not capture the order appropriately.
+
+Despite some of these challenges, factors play a crucial role in many analytical settings. It pays off to get used to working with them. We'll explore how to handle more complex factors in section X. 
+
+### Logical
+
+Logicals are TRUE and FALSE values that are encoded as 1s and 0s, respectively. They are also known as Boolean values. Many functions produce logical values as output. You've already seen this in a number of cases (e.g., `is.numeric()`).
+
+To further illustrate their behavior, consider the following logical vector. 
+
+```{r logical}
+
+logicals <- c(TRUE, FALSE, TRUE)
+
+```
+
+Logicalal values' encoding allows you to summarize logical vectors using arithmetic. 
+
+```{r}
+
+sum(logicals)
+
+mean(logicals)
+
+```
+
+Logical values are central to comparisons and executing conditional logic, which we introduce in section x.x. 
+
+### Date
+
+Then final data type we introduce is the date. The typical process for creating a date is to convert a character that is otherwise in a date format using the `as.Date()` function. You can convert a date already in the format year-month-day without taking any additional action. 
+
+```{r}
+
+date.1 <- as.Date("1991-01-03")
+
+class(date.1)
+
+```
+
+Of course, dates often come in different formats. A common alternative is month/day/year. To convert a date in such a format, you need to specify this pattern in the `format` argument. 
+
+```{r}
+
+date.2 <- as.Date("11/2/1958", format = "%m/%d/%Y")
+
+date.2
+
+```
+
+Notice that R converts the date to the format it prefers. You can read about the various format codes by typing `help(strptime)` into the console. 
+
+As with many actions in R, it is often easier to work with a package. In the date realm, some find it easier to use the `lubridate` package for date conversions. For example, to convert a date of the format month/day/year, we can simply use the `lubridate` function `mdy()`. 
+
+```{r, warning=FALSE}
+
+library(lubridate)
+
+date.3 <- mdy("6/2/1987")
+
+date.3
+
+```
+
+Finally, you can always access today's date using `Sys.Date()`, which is useful in many contexts. 
+
+## Data Structures
+
+The most important data structures in R are: vectors, matrices, data frames, and lists. In this book, we will strive to arrange our data in a data frame. However, understanding other data structures is important for using R effectively, as they are all related. Indeed, a data frame is a collection of vectors. Further, the R manual describes data frames as "matrix-like structures" (R Core Team 2021, 11). Moreover, it turns out that a data frame is actually a special type of list. With these relationships in mind, we begin by exploring the vector, which is the foundational data structure in R. 
+
+### Vector
+
+The R manual defines a numeric vector as "a single entity consisting of an ordered collection of numbers" (R Core Team 2021, 7). This definition can be extended to other types of vectors by swapping out the word "numbers" for any of the data types discussed in section 2. R for Dummies provides a more general definition of vectors as "a one-dimensional set of values, all the same type" (De Vries and Meys 2012, 54).
+
+One of the reasons the vector is so important is because most functions in R work on vectors. That is, they will automatically perform their underlying operation on every element in a vector. There is no need to explicitly loop over over values in the vector. This is why R is often described as being **vectorized**.
+
+Let's take a look at some examples of vectors, all of length 5. Here, we'll wrap each expression in `()` to automatically print the vectors. 
+
+```{r vectors}
+
+# Created using the concatenate function c()
+(a <- c(1, 3, 5, 7, 9))
+
+# Created using a sequence
+(b <- 1:5)
+
+# A character vector
+(c <- c("a", "b", "c", "d", "e"))
+
+# A logical vector
+(d <- c(TRUE, FALSE, FALSE, TRUE, TRUE))
+
+# Vector arithmetic
+(e <- a + b)
+
+```
+
+[Chapter 2 of the R Manual](https://cran.r-project.org/doc/manuals/r-release/R-intro.html#Simple-manipulations-numbers-and-vectors), Part II of R for Dummies, and [chapter 20 of R4DS](https://r4ds.had.co.nz/vectors.html) are all excellent references on vector properties and operations.
+
+### Matrix
+
+According to the R manual, "matrices or more generally arrays are multi-dimensional generalizations of vectors" (R Core Team 2021, 11). We can create a matrix by combining multiple vectors. Below we use `cbind()`, which binds vectors of the same dimensions column-wise. Alternatively, we could use `rbind()` to combine the vectors row-wise. 
+
+```{r matrices}
+
+(mat <- cbind(a, b, e))
+
+class(mat)
+
+```
+
+We can access elements of a matrix as follows: matrixName[rows, columns]. Consider some examples. 
+
+```{r mat-subset}
+
+# Access the observation in row 3, column 2
+mat[3,2]
+
+# Access all observations in rows 1-3 and columns 2-3
+mat[1:3,2:3]
+
+# Access all rows in columns 1 and 3; in other words, access columns  1 and 3
+mat[,c(1,3)]
+
+```
+
+Look what happens though when we append the character vector `c` to the matrix:
+
+```{r mat-prob}
+
+(mat <- cbind(mat, c))
+
+```
+
+Everything has been turned into a character! Matrices cannot handle data of different types. This is one reason why we need and generally prefer to work with data frames. Still, it is important to be aware of matrices because they emerge in various contexts, particularly in more advanced statistical modeling methods. 
+
+### Data Frame
+
+A data frame is a two-dimensional object capable of containing different data types. In this sense, data frames are similar to spreadsheets. Our primary goal in data wrangling (Part II) is to organize data into a data frame that is optimized for analysis. For the most part, we will import the data to our environment. In the meantime, let's create a simple data frame out of the vectors we have developed thus far. 
+
+```{r df}
+
+df <- data.frame(
+  a = a, 
+  b = b, 
+  c = c, 
+  d = d, 
+  e = e
+)
+
+df
+
+```
+
+We can use the `summary()` function to obtain summary statistics about the numeric and integer variables in `df` and other relevant information about non-numeric data. 
+
+```{r summary-df}
+
+summary(df)
+
+```
+
+
+We can access the elements of a data frame just as we do with matrices. For example: 
+
+```{r df-sub}
+
+df[1:3,2:3]
+
+```
+
+Further, it is common to access columns by name.
+
+```{r df-select}
+
+df[, c("a", "c")]
+
+```
+
+We can also access columns using `$`, which you will see quite often.
+
+```{r df-column}
+
+df$b
+
+```
+
+This has been a very short introduction to data frames. We will pick up in more depth in Part II. 
+
+### List
+
+A list is a very flexible data container that can hold multiple types of structures. To illustrate, let's store a number of object we have created in a list called `my.list`.  
+
+```{r my-list}
+
+my.list <- list(
+  index.1, 
+  regions, 
+  a, 
+  df
+)
+
+my.list
+
+```
+
+We can access a list component using double brackets `[[]]`. If the list objects are named, which they aren't in this case, we can also access them using `$`, just as with data frames.  
+
+```{r my-list-access}
+
+my.list[[4]]
+
+```
+
+Lists are a bit more advanced, but they are important to be aware of. Many statistical modeling functions in R produce lists as output. Being able to extract elements from a list is important and generally pretty easy. 
+
+## Functions
+
+Functions are one of the foundations of programming. They can be thought of as little factories that take inputs and generate outputs (cite). The inputs are called arguments. In R, the outputs are typically one of R's data types or structures. Below we introduce using, getting help with, and  developing functions. 
+
+### Using Functions
+
+While you can conduct a wide range of data analysis in R without ever developing your own function, you cannot get by without using functions. Indeed, almost every operation in R is conducted using a function. Base R ships with a rich set of functions, and it is important have a solid grasp of how they work. 
+
+We have already used a number of functions in this chapter, but let's dig a bit deeper into one: `round()`. To foreshadow a bit, you can read the `round()` function documentation by typing `?round` in the console. The documentation explains that takes two arguments, `x` and `digits`. `x`, which can be any numeric vector, is an example of a **data argument** (Wickham and Grolemund 20XX, Ch.). In fact, `round()` requires a numeric vector to be deployed. The second argument, `digits`, enables you to specify the number of units to which you want to round. `digits`, which has a default setting of `0`, is a **detail** argument (Wickham and Grolemund 20xx, Ch.). If you are comfortable the default, you don't have to use the `digits` argument, but if you want something different, you need to override the default argument.  
+
+Let's illustrate these nuances using a short numeric vector named `f`. 
+
+```{r vector-round}
+
+# Create vector
+f <- c(2.23, 5.76, 9.12, 4.54, 3.33)
+
+# Round to zero decimals
+round(f)
+
+# Round to one decimal
+round(f, digits = 1)
+
+```
+
+Function arguments typically have names. You can use the names or drop them, as long as you specify them in the correct order according to the function documentation. Below we illustrate various approaches you might encounter. 
+
+```{r function-names}
+
+# Use argument names
+round(x = f, digits = 1)
+
+# Drop argument names
+round(f, 1)
+
+# Use the detail argument name
+round(f, digits = 1)
+
+```
+
+Whether or not you use argument names is largely a matter of taste. In general, it is common to leave data arguments unnamed but name detail arguments if the defaults are being modified. Even if you prefer to forgo names for the detail arguments, it is a good idea to name them if you are overriding more than 1-2 defaults because it is really easy to forget which arguments have been modified. It is important to emphasize that you can never go wrong by using argument names.
+
+### Help with Functions
+
+If you need help with a function, one of your first actions should be to consult the function documentation. Documentation can be accessed directly from RStudio in a couple of different ways. Using `round()` as an example, you can access its documentation by running one of the following from the console:
+
+```{r, eval=FALSE}
+
+help(round)
+
+```
+
+Or, 
+
+```{r, eval=FALSE}
+
+?round()
+
+```
+
+In either case, the function documentation will appear in the "Help" tab of the lower right quadrant of RStduio. 
+
+![](images/help.PNG)
+
+Most help files summarize the function, describe its arguments, discuss more specific details about the function, and provide examples of how to use the function. These examples can be very informative. Although it gets easier to read function documentation with experience, these files not always easy to decipher. 
+
+Often, the types of references discussed in x.x have more intuitive discussions and examples of how functions work. Additionally, the discussion boards highlighted in x.x can be a great resource for getting help with functions. 
+
+### Developing Functions 
+
+Developing functions is a quasi-advanced topic, but it is important because developing your own functions can help you automate tasks and isolate errors. Additionally, function development is one of the defining features of programming in enterprise settings. 
+
+The general form of a function is:
+
+```{r function-form, eval=FALSE}
+
+# Note: not run
+function_name <- function(arguments){
+  
+  operations
+  
+}
+```
+
+Translating this form into substance, it is fairly straightforward to create a corporate income tax calculation function named `calculate_ctax` with two arguments: 
+
+- A data argument `x`, which can be any vector and represents a corporation's (or multiple corporations') net income
+- A detail argument `rate`, which defaults to 21%, the marginal corporate tax rate in the United States
+
+If we build and and run the function below, it lives in the Global Environment and can be used until we clear the environment or start a new session. 
+
+```{r calctax}
+
+calculate_ctax <- function(x, rate = .21){
+  
+  x * rate
+  
+}
+
+```
+
+Notice that within the `{}`, we perform arithmetic on the argument names. Of course, the argument names are placeholders for numeric values. Thus, if we want to find the income tax for a corporation with net income of 100, we simply supply our function the value 100.
+
+```{r}
+
+calculate_ctax(100)
+
+```
+
+Suppose we want to use our function to find a corporation's income tax in an overseas jurisdiction, such as Ireland. We can override the default tax rate with Ireland's corporate income tax rate, 12.5%. 
+
+```{r}
+
+calculate_ctax(100, rate = .125)
+
+```
+
+`calculate_ctax` is vectorized. Therefore, if we are evaluating more than one firm, we can feed the function a vector of firms' net incomes and derive the income tax for each firm all in one go. 
+
+```{r}
+
+firms.income <- c(100, 95, 70, 150, 50)
+
+calculate_ctax(firms.income)
+
+```
+
+This has been a gentle introduction to function development. You may find it useful to revisit this section after taking in more of the book. Two excellent more in-depth primers on function development are Chapter X of R for Dummies and [Chapter 19](https://r4ds.had.co.nz/functions.html) of R4DS. 
+
+## Comparisons and Conditional Logic
+
+One of the defining features of statistical programming is comparing values and executing conditional logic. R uses a fairly standard set of comparison operators. Importantly, comparisons produce logical values, as illustrated below. 
+
+```{r comparisons}
+
+# Greater than 
+10 > 5
+
+# Less than 
+10 < 5
+
+# Greater than or equal to
+10 >= 5
+
+# Less than or equal to
+10 <= 5
+
+# Equal to 
+10 == 5
+
+# Not equal to
+10 != 5
+
+```
+
+The logical values produced by comparisons are often used to execute conditional **if...else** logic. To illustrate, say the personal income tax rate in a given jurisdiction is 30% for individuals making $100 or more and 10% for all others. If we want to code this logic and evaluate it for someone making $100, we can do so as follows. 
+
+```{r conditional-logic}
+
+# Store the individual's income value
+income <- 100
+
+# Implement conditional logic
+if(income >= 100){
+  
+  income * .3
+  
+} else(
+  
+  income * .1
+)
+
+```
+
+It is critical to point out that the above operation is not vectorized. It can only operate on one value at a time. This type of long-form conditional logic is mostly used in building functions.
+
+The more compact and vectorized function `ifelse()` can implement conditional logic on multiple values automatically. The function works as follows: `ifelse(logical test, value if true, value if false)`. Excel users will recognize that the arguments of `ifelse()` are identical to those of `IF()` in Excel.  
+
+Let's implement an example. To start, recall the simple data frame we created named `df`. 
+
+```{r}
+
+df
+
+```
+
+If we want to add a new variable to `df` named `f` that takes on a value of 1 if column `e` is greater than 10 and 0 otherwise, we could easily do so using `ifelse()`. We will learn more about creating and modifying variables in a data frame in X.X. For now, notice below that we create the new variable `f` using `$`.
+
+```{r}
+
+df$f <- ifelse(df$e > 10, 1, 0)
+
+df
+
+```
+
+We can take conditional logic to the next level by pairing these techniques with the operators AND and OR. When pairing AND and OR with `ifelse()`, we implement them using `&` and `|`, respectively. When using the longer-form non-vectorized `if()...else()`, it is safer to use `&&` and `||`. 
+
+Take a look at what's going on with the new variables `g` and `h`. How do they differ?
+
+```{r}
+
+df$g <- ifelse(df$e > 10 & df$a == 9, 1, 0)
+
+df$h <- ifelse(df$e > 10 | df$a == 9, 1, 0)
+
+df
+
+```
+
+`h` is more inclusive than `g`, as it represents cases where either condition specified in is true, while `g` takes on a value of 1 only when both conditions are true. 
+
+## Loops
+
+Loops, which enable iteration, are another central feature of programming. They allow you to apply a function across multiple objects or variables. The best way to understand how loops work is to see one in action. To facilitate, let's build a basic data frame that captures ten firms' revenues and expenses. To do this, we use the `runif()` function, which allows us to randomly sample numbers from a uniform distribution between boundaries we specify. 
+
+```{r corporations}
+
+firms_df <- data.frame(
+  firm_name = LETTERS[1:10],
+  revenues = round(runif(10, 90, 110), 2),
+  expenses = round(runif(10, 50, 120), 2)
+)
+
+firms_df
+
+```
+
+By subtracting expenses from revenues, we arrive at pre-tax net income (ptni).  
+
+```{r ptni}
+
+firms_df$ptni <- firms_df$revenues - firms_df$expenses
+
+```
+
+Now we can apply the `calculate_tax()` function we developed in x.x to `ptni` to find the firms' tax bills. Assuming they are U.S. firms, we can leave the default tax rate unaltered. 
+
+```{r tax}
+
+firms_df$tax <- calculate_ctax(firms_df$ptni)
+
+```
+
+Finally, we derive after tax net income (atni) as `ptni - tax`. 
+
+```{r atni}
+
+firms_df$atni <- firms_df$ptni - firms_df$tax
+
+```
+
+As we know, `summary()` enables us to obtain summary statistics, including the mean, for the variables in our newly developed data frame. 
+
+```{r firms-summary}
+
+summary(firms_df)
+
+```
+
+If you want to extract a vector of means for the variables, you can apply the `colMeans()` function to all the variables in `firms_df` except `firm_name`, which is the first column. We specify this using negative indexing, wherein we ignore the first column using `-1`.   
+
+```{r firms-colmean}
+
+colMeans(firms_df[-1])
+
+```
+
+That's easy enough, but what if you want to apply other functions across the variables? It may be of useful, for example, to obtain a vector of medians for each variable. Economic and financial variables are often skewed right across units of observation. That is, the mean is a lot bigger than the median. This owes to the presence of outliers. In economic terms, there are often countries (e.g., USA, China) and companies (e.g., Apple, Microsoft, etc.) that are much bigger than most. In such cases, the median may be more representative of typical observations than the mean. 
+
+R doesn't have functions like `colMeans()` for every operation, including the median. One option for obtaining the median, of course, is to apply `median()` to each column in the data frame.  
+
+```{r median-cp}
+
+median(firms_df$revenue)
+
+median(firms_df$expenses)
+
+# And so on...
+
+```
+
+But this would involve error-prone copy-pasting. What if you had to do this for 100 columns? It would be too costly. As a general matter, it is advisable to avoid too much copy-pasting. If you find yourself copy-pasting more than a couple times, you should explore a better route. One surely exists.
+
+In this case, we can use a loop to apply `median()` across the variables of interest. While there are different types of loops, we focus on the **for loop** here. The basic structure of a for loop is explained well in Chapter 9 of R for Dummies and [Chapter 21](https://r4ds.had.co.nz/iteration.html) of R4DS. In applying our median for loop to `firms_df`, we follow three steps: 
+
+- Create an empty container--sometimes called a pre-allocation vector--in which to store the output of the loop. There are many ways to do this. Below we create `firms.med` using the `vector()` function. We design it to be a vector of length five with zeroes as placeholders. 
+- Specify the sequence over which we intend to loop: `for (i in seq_along(firms_df[-1]))`. The keywords `for` and `in` are actually quite intuitive. `i` is an identifier that is used throughout the loop to keep track of the iterations. In effect, `seq_along(firms_df[-1])` creates the vector 1-5, but this syntax is more robust within a looping structure than simply using `1:5` or `1:length(df[-1])`.
+- (3) Between the `{}`, we iterate over the variables of interest in `firms_df`, applying the `median()` and storing the output in `firms.med`.  
+
+```{r loop}
+
+# Create a pre-allocation vector
+firms.med <- vector(mode = "numeric", length = ncol(firms_df[-1]))
+
+# Execute median loop
+for (i in seq_along(firms_df[-1])) {
+  firms.med[[i]] <- median(firms_df[-1][[i]])
+}
+
+# View the output
+firms.med
+
+```
+
+Let's clean up `firms.med` a bit and view the output one more time. 
+
+```{r}
+
+# Assign names of variables to median vector
+names(firms.med) <- colnames(firms_df[-1])
+
+# Round and display the medians
+round(firms.med, 2)
+
+```
+
+That worked out pretty well, but it turns out there is an easier way to do this in R. Base R has a family of functions--`apply()` and its relatives (`lapply()`, `sapply()`, and others)--that can substitute for loops in many contexts. 
+
+Below we use `apply()` to implement our median loop from above. `apply()` takes three arguments: 
+
+- data: in this case everything except the first column of `firms_df`
+- margin: apply the function to the rows (1) or the columns (2)
+- function: function to apply across the data
+
+```{r apply}
+
+apply(firms_df[-1], 2, median)
+
+```
+
+Much easier. We can take this a step further and summarize the results alongside the mean using `cbind()`. While we're at it, we can throw in the standard deviation. For formatting purposes, we wrap the summary in `round()`. 
+
+```{r cbind-loops}
+
+round(
+  cbind(mean = colMeans(firms_df[-1]), 
+        median = apply(firms_df[-1], 2, median),
+        sd = apply(firms_df[-1], 2, sd)))
+
+```
+
+## Errors
+
+Errors are extraordinarily common in R. Try to add `dow.jones`, an integer, to `index.1`, a character. 
+
+```{r err, error=TRUE}
+
+dow.jones + index.1
+
+```
+
+This is an example of a **syntax** error. We have tried to execute code that R does not understand. Syntax errors happen all the time. They can be very frustrating, but they are the easiest type of error to detect and deal with because you generally cannot proceed without resolving them. 
+
+Syntax errors display an error message. Some are more helpful than others. The above message is tough to decipher, but you can basically tell that we have tried to do something with non-numeric data that does not make sense. Indeed, adding the word "Dow Jones" to the number 35491 does not make sense. 
+
+More complex errors include **semantic** and **logic** errors. These types of errors can be difficult to detect because, in both cases, code runs successfully, but it does not do what you intended. While semantic errors often result in an explicit error down the line, logic errors are more pernicious because they result from something inherently wrong in your approach. 
+
+In any case, these types of errors often require significant debugging, wherein you must retrace your steps. There are tools to help debugging, which you can read about at the following resources: 
+- Chapter 10 of R for Dummies 
+- [Chapter 22](https://adv-r.hadley.nz/debugging.html) of Advanced R
+- McPherson, Jonathan. 2021. ["Debugging with the RStudio IDE"](https://support.rstudio.com/hc/en-us/articles/205612627-Debugging-with-the-RStudio-IDE), RStudio Support.
+
+## Getting Help with Errors
+
+What can you do if you are presented with an error message that you do not understand? You can always review the help files of a given function, as discussed in x.x. Often, though, the best course of action is to simply paste the error message into Google. Almost every error you can think of has been addressed by an R user on an online discussion board. The most well-known discussion board for programming issues is [Stack Overflow](https://stackoverflow.com/). A related discussion board for statistical questions is [Cross Validated](https://stats.stackexchange.com/). When you Google an error, you are likely to find multiple Stack Overflow discussions about the error. 
+
+If you are serious about using R, you should create an account at these websites. You can certainly post questions of your own. Before you do, though, ensure that you have searched thoroughly for your question and learn how to create a [Minimal, Reproducible Example](https://stackoverflow.com/help/minimal-reproducible-example). R experts are very generous about sharing knowledge, but they expect you to limit redundancy as much as possible and provide a clear exposition of your question. 
+
+## Style
+
+Maintaining sound style and syntax is important for keeping your code readable and orderly. To this end, following an established convention is a good idea. A strong source in this regard is the [tidyverse style guide](https://style.tidyverse.org/).
+
+One aspect of style that deserves attention upfront is naming. Naming objects consistently and meaningfully will make your life a lot easier. There are three common naming conventions, which vary based on how they distinguish between multiple words: 
+
+- **snake_case**: use an underscore 
+- **dotted.case**: use a period
+- **camelCase**: capitalize all words except the first
+
+In keeping with the tidyverse style guide, this book uses snake case for naming the most important elements: data frames, variables, files, and functions. 
+
+Why, then, did we use dotted case for many objects in this chapter? As a matter of author preference, the book uses dotted case for free-standing vectors and values, as well as lists. In this book, these types of objects are almost never the focal point of our analysis. Rather, we use them to facilitate the analysis of data frames. As such, it is helpful to distinguish them from a naming standpoint. Most such objects, except lists and matrices, will appear under the Values heading in the Global Environment. They are considered **environmental values**.   
+
+# References {-}
+
+De Vries, Andrie and Joris Meys. 2012. *R for Dummies*. John Wiley & Sons, Ltd. Chichester, West Sussex, England. 
+
+R Core Team. 2021. *[An Introduction to R](https://cran.r-project.org/doc/manuals/r-release/R-intro.html)*. Version 4.1.2.  
+
+

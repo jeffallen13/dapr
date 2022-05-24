@@ -1,0 +1,29 @@
+---
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      fig.align = 'center',
+                      fig.width = 6,
+                      fig.asp = 0.7,
+                      out.width = "70%")
+options(scipen = 999)
+
+```
+
+# Visualization with Base R Graphics
+
+- Need to give HW credit for first two organizing principles
+
+## Variation within variables
+
+## Covariation between variables
+
+## Time plots
+
+## Options and controls

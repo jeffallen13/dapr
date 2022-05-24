@@ -1,0 +1,72 @@
+---
+title: "Data Analytics for Policy Careers Using R"
+subtitle: "An Introduction to Data Wrangling and Visualization"
+author: "Jeff Allen"
+date: "2022"
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Welcome {-}
+
+# Introduction
+
+Welcome to Data Analytics for Policy Careers using R! The goal of this book is to introduce current and aspiring public policy professionals to foundational data analytics skills via the popular statistical programming language R. The book broadly focuses on two essential data analytics skills: wrangling and visualization. 
+
+Data wrangling refers to a wide range of data processing and manipulation tasks. The ultimate goal of data wrangling is to prepare data for analysis. Visualization involves plotting data to generate insights about variation, relationships, and anomalies among variables of interest. Visualization has long been one of the primary drivers of decisionmaking in policy settings. It is arguably more important than ever as visualization and presentation tools become more sophisticated and accessible. 
+
+Taken together, data wrangling and visualization encompass a significant chunk of data analytics work conducted in the public policy world. For better or worse, in large public policy bureaucracies, many of the tools students learn in statistics, econometrics, and data science classes, such as hypothesis testing, regression modeling, and machine learning are used primarily by senior staff or internal research departments. By contrast, data wrangling and visualization are generally egalitarian. In fact, demonstrating competence in these areas is often a pre-requisite for assuming more complex modeling assignments. 
+
+But even for the most advanced data analysts, wrangling and visualization constitute a significant chunk of the analytics work flow. An old, but potentially apocryphal, adage is that data analytics professionals spend 80 percent of their time collecting, cleaning, and processing data. Notwithstanding the validity of this estimate, a [2020 survey](https://www.anaconda.com/state-of-data-science-2020) conducted by Anaconda, a well-known data science distribution platform, finds that data scientists spend about 66 percent of their time loading, clensing, and visualizing data, and only about 34 percent of their time modeling. Compared to the universe of data analytics roles, the survey's finding with respect to modeling-related time is likely biased upward because the survey targeted individuals using "data science and machine learning tools." 
+
+The bottom line is that you can get a lot of career mileage out of data wrangling and visualization. Mastering these skills is the first step to becoming a productive data analyst in policy settings. 
+
+## Target audience
+
+This book has been written with a few primary audiences in mind: graduate students in a public policy discipline, public sector professionals, and researchers at academic institutions or think tanks. Public policy is a vast field, and the data used in this book are biased toward economic and political topics. We do not dive into the worlds of public health, education, the environment, and other important fields. That said, the book is intended to be widely accessible to a variety of policy analysts and even beyond the public policy realm. Professionals from other disciplines can certainly benefit from the material as well.
+
+## Why R?
+
+R is an excellent tool for conducting data analytics, and there are a few reasons why it is particularly well-suited for this book. 
+
+First, and most importantly, R is widely used in government, research organizations, and other public sector entities. One reason for this is because the dominant purpose of data analytics in the policy world is to inform decisionmaking. R has exquisite tools for developing and presenting analytical insights to decision-makers. Beyond its world-class visualization capacity, R enables analysts to easily transform their analysis into reports, memos, e-mails, presentations, and more through [R Markdown](https://rmarkdown.rstudio.com/) and related tools. Additionally, [R Shiny](https://shiny.rstudio.com/) enables analysts to build interactive web pages and dashboards. In fact, you can combine R Markdown and Shiny to create interactive reports. 
+
+Second, visualization is a primary focus of this book, and R is widely acknowledged to have some of the best data visualization capabilities out there. The ability to seamlessly transition from data preparation into visualization makes R well-suited for these aspects of the analytics work flow.  
+
+Third, the resources and help community available to R users are extraordinary. R is a free and open-source software and is ensconced in a culture of sharing, transparency, and affordability (in a financial sense). Further, R is used by many academics and researchers who have a penchant for instruction. All of this means there are a plethora of R-focused books, guides, websites, blogs, and discussion boards that address a wide array of programming and analytics topics. These resources are a major advantage for policy analysts who want to incorporate data analytics in their repertoire. 
+
+## What sets this book apart?
+
+With so many wonderful R resources, why read this book? Most extant R books come in two broad flavors. First, there are *manual-style books*, which expose readers to a wide range of R functions and capabilities. These books typically treat key topics in a discrete fashion and are designed to serve as reference guides. Then there are methods books, which explain how to apply various quantitative research methods using R, such as statistics, econometrics, and predictive analytics. Methods books almost always use previously curated datasets to illustrate concepts and mechanics. Most non-book R resources use vignette- or example-based approaches, which focus on applying selected R packages or functions. 
+
+The trouble is that even after consuming some of the best R resources, many policy analysts struggle to put all the pieces together into a coherent work flow. The goal of this book is to fill the gap by walking through the process of assembling datasets from start to finish. We then examine the variables in the assembled datasets through summaries and visualization. 
+
+In the course of doing so, we address many--though certainly not all--of the challenges and imperatives you will confront in the real world. An added bonus of the start-to-finish approach is that you will get to know the data very well. When we get to visualization, this familiarity will enable you to more easily generate extensions of our introductory examples. 
+
+Despite the start-to-finish approach, the book has a few features that enable you to skip around if that is your preference. Notably, the datasets necessary to start each chapter are provided. Section x.x discusses how to obtain these datasets. Further, the topics are organized in sections. If you are particularly interested in brushing up on a specific data wrangling or visualization task, the section headers can guide you to the appropriate section. 
+It is important to note that while we cover a wide range of R functions and methods, this book is meant to complement, not substitute for, manual-style books. As discussed in x.x, the book leans on a few key manual-style resources throughout. 
+
+A second distinguishing feature of this book is that it is designed to give you options. Most R resources take a deep dive on a single analytical paradigm. This book exposes you to a few of the most important frameworks for conducting data analysis in R. Specifically, in Part II, Data Wrangling, we use Base R, the Tidyverse, and Data Table. In Part III, Visualization, we use Base R Graphics, GGPLOT2, and Plotly. 
+
+Don't worry if these names don't mean much to you right now. We'll get to them soon. All of these frameworks have their advantages, disadvantages, and use cases. You don't have to stick to one. By equipping you with broad knowledge, this book is intended to help you pivot quickly based on your and your colleagues' needs and preferences. 
+
+Finally, the data we examine in this book are meant to be compelling for those pursuing policy careers. Although they are biased to economic and political topics, readers with professional or even amateur interest in economics and politics will likely find the data more engaging than many of the canonical R datasets used in other resources and examples. In exploring the data herein, you will be able to investigate a wide range complex international policy issues. Hopefully the data will keep you engaged and thirsty for more. 
+
+## Plan of the book 
+
+The plan of this book is straightforward. In Part I, we address preliminaries. Chapter 2 of Part I helps you install R and familiarize yourself with the RStudio environment. Chapter 3 examines R fundamentals that are widely applicable across data wrangling paradigms. Part II focuses on data wrangling. In chapters 4-6, we put together datasets from scratch using Base R, Data Table, and the Tidyverse. Finally, in Part III, we leverage Base R Graphics, GGPLOT2, and Plotly to examine the datasets we put together in Part II through a wide range of visualizations. Each chapter of Parts II and III uses a different data wrangling or visualization framework, so you can easily navigate to methods of interest. 
+
+## Data
+
+In Part II, we develop two datasets that we explore in Part III. The first dataset, which we assemble in Chapters 4 and 5, includes a range of country-level economic and political variables over the course of 2000-2020. Because the data enable us to explore questions at the intersection of international economics and politics, we call it the International Political Economy (IPE) dataset. In Chapter 6, we put together another dataset that includes U.S. state-level economic and political variables over the course of 2006-2020. Fittingly, we call this the U.S. Political Economy (USPE) dataset. 
+
+At the beginning of each chapter, we describe the underlying data we use to assemble the datasets. All of the data necessary to complete each chapter is available at the book's Github repository (repo), which can be found here. This includes the final datasets we put together in Part II in case you want to skip ahead and focus on the visualization chapters. To download the data, navigate to the `data-raw` folder of the Github repo and download the relevant dataset. 
+
+## Conventions

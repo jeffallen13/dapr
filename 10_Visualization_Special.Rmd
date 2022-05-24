@@ -1,0 +1,38 @@
+---
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      fig.align = 'center',
+                      fig.width = 6,
+                      fig.asp = 0.7,
+                      out.width = "70%")
+options(scipen = 999)
+
+```
+
+# Special Topics in Visualization
+
+## Time plots (again)
+- Hyndman tools 
+- Dygraphs
+
+## Errors
+
+## Uncertainty
+
+## Text
+
+## Networks
+
+## Maps 
+
+### Add lat and long for states, countries
+### See QSS
+
+## Plotly

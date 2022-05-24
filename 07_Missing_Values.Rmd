@@ -1,0 +1,32 @@
+---
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      fig.align = 'center',
+                      fig.width = 6,
+                      fig.asp = 0.7,
+                      out.width = "70%")
+options(scipen = 999)
+
+```
+
+Missing values and Imputation.
+
+- try to move all information about missing values here 
+
+Common ways: 
+
+- Listwise deletion
+- Mean imputation: advantage is does not introduce bias. 
+- See Python for inspiration: imputing group means 
+- Carry forward / backward: only appropriate for time series 
+- Linear interpolation (time-based)
+- Group-based regression (e.g., states, group-region)
+- See ANR: ifelse(isna, predict from model)
+- Sophisticated: mice, amelia, etc. 

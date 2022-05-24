@@ -1,0 +1,699 @@
+---
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      fig.align = 'center',
+                      fig.width = 6,
+                      fig.asp = 0.7,
+                      out.width = "70%")
+options(scipen = 999)
+
+```
+
+# Wrangling with the Tidyverse
+
+Our goal in this chapter is to use a collection of R packages known as the Tidyverse to assemble a dataset that, much like the IPE dataset we developed in x.x and x.x, enables use to explore issues within the U.S. political economy. 
+
+The Tidyverse is an extremely popular collection of packages that facilitate data wrangling, visualization, and other common analytical tasks. Tidyverse packages and their underlying functions are intuitive, powerful and wide-ranging. The Tidyverse also has a rich array of learning and help resources freely available on the internet. Some helpful resources in this regard are: 
+
+- [R for Data Science](https://r4ds.had.co.nz/), which we cite through this book 
+- The Tidyverse [website](https://www.tidyverse.org/)
+- Tidyverse package [cheat sheets](https://www.rstudio.com/resources/cheatsheets/), which can be found at the RStudio website 
+
+The U.S. political economy dataset that we assemble in this chapter will be a panel that contains state-level economic and political indicators from 2006-2020. The main constraint on the time frame is the Cooperative Election Study (CES), which is described further below. In putting the data together, we work with three constituent datasets: 
+
+-   **U.S. state-level economic indicators**: These data are obtained from the [Federal Reserve Economic Data (FRED)](https://fred.stlouisfed.org/) database maintained by the Federal Reserve Bank of St. Louis. We work with a CSV in this section, but the data were compiled by importing them directly into R using the [fredr](https://cran.r-project.org/web/packages/fredr/vignettes/fredr.html) package, which helps users obtain data through the St. Louis Fed's Application Programming Interface (API). Those interested in using `fredr` should consult Sam Boysel's [Getting started with fredr](https://cran.r-project.org/web/packages/fredr/vignettes/fredr.html) vignette.
+-   **Cooperative Election Study (CES)**: [CES](https://cces.gov.harvard.edu/) (Ansolabehere 2010) is an online survey of Americans' voting behaviors and political opinions that has been conducted since 2006. We use the 2006-2020 CES dataset compiled by Kuriwaki (2021) and available on the [Harvard Dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi%3A10.7910/DVN/II2DB6). For the CES data, our main goal is to aggregate individual-level approval variables for elected representatives up to the state level. 
+-   **State-level U.S. Presidential voting returns**: These data are compiled by the [MIT Election Data and Science Lab (2017)](https://electionlab.mit.edu/data) and available on the [Harvard Dataverse](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/42MVDX). The underlying data are derived from the report "[Statistics of the Congressional Election](http://history.house.gov/Institution/Election-Statistics/Election-Statistics/)," which is published biennially by the Clerk of the U.S. House of Representatives. We will use the presidential voting data to develop a crude indicator identifying states as "red" or "blue," a common shorthand framework for understanding whether states lean Republican or Democrat. 
+
+## Importing and Inspecting Data
+
+With these goals in mind, we start by loading the tidyverse. 
+
+```{r call-tidy, warning=FALSE}
+
+library(tidyverse)
+
+```
+
+Calling it reveals the eight individual packages that make up its core. In this chapter, we will use `readr`, `tibble`, `dplyr`, and `tidyr`. In chapter 3, we will make heavy use of `ggplot2` for visualization.
+
+It is important to note the conflicts. Two dplyr functions, `filter()` and `lag()`, conflict with functions of the same name from the `stats` package. `stats` is automatically loaded with base R. Since we called `dplyr` after `stats`, `filter()` and `lag()` will default to the `dplyr` versions. If you want to override this behavior, you can preface the function with `::`. For example, if I want to use the `stats` version of `lag()`, I would type `stats::lag()`. As discussed in x.x, it is generally safe to use the `::` preface. A final note on this. The Global Environment drop-down in the upper right quadrant will tell you the ordering of packages.
+
+The state economic data are in the form of a CSV, which can be imported using the `read_csv()` from `readr`.
+
+```{r import-stecon}
+
+stecon_df <- read_csv("data-raw/stecon_data.csv")
+
+```
+
+An underscore distinguishes `read_csv()` from the base R `read.csv()`. In other words, the former is in "snake case", while the latter is in "dotted case." Tidyverse functions almost always use snake case.
+
+`readr` enables some sophisticated methods of parsing data at the import stage. We won't cover these, but you can read about them in the `readr` [package documentation](https://cran.r-project.org/web/packages/readr/index.html) and in [chapter 11](https://r4ds.had.co.nz/data-import.html) of Wickham and Grolemund.
+
+Take a look at the class of `stecon_raw`.
+
+```{r}
+
+class(stecon_df)
+
+```
+
+Though there appear to be four different classes, the important thing to note is that the object is a "tibble" (represented by "tbl"), which is a sub-class of a data frame and unique to the Tidyverse. `readr` imports data as a tibble. We can also create tibbles using the `tibble` package. NB: expand on spec_tbl_df?
+
+It is critical to note that you do not have to convert a data frame to a tibble to make use of a big chunk of tidyverse functionality. You can import your data using a base R approach and carry on with many of the methods discussed below. One exception to this involves inspecting your data.
+
+Next, we import the CES data. As with the V-Dem data from x.x, the CES data are in the form of an RDS file.
+
+```{r import-cces}
+
+ces_df <- readRDS("data-raw/cumulative_2006-2020.Rds")
+
+class(ces_df)
+
+```
+
+Even though we did not use `readr` to import the CES data, `ces_raw` is also a tibble. This is because the maintainer saved the data as a tibble within the RDS file.
+
+Finally, we import the MIT data, which are stored in an RData file format. This is our first encounter with RData files. One imports such files using `load()`.
+
+```{r import-mit}
+
+load(file = "data-raw/1976-2020-president.RData")
+
+```
+
+Notice that `load()` automatically names the object `x` without any explicit assignment. This behavior is neither good nor bad. One may prefer naming the object simultaneously with importing. When saving an RData file, the file is given the same name as the object. In this case, the maintainer used the name `x`. Take a look at the class of `x`.
+
+```{r}
+
+class(x)
+
+```
+
+`x` is a regular old data frame, which is fine within the `tidyverse` context. We could carry on working with the data frame, but to keep things consistent, let's convert it to a tibble and provide it with a more descriptive name.
+
+```{r}
+
+pres_df <- as_tibble(x)
+
+```
+
+Let's also remove `x` to clean up the environment and free up memory.
+
+```{r}
+
+rm(x)
+
+```
+
+Inspecting tibbles is a bit simpler than inspecting base R data frames. By simply typing the name of the tibble, we obtain the same information provided by the base R functions `head()` and `str()`.
+
+```{r}
+
+stecon_df
+
+```
+
+In viewing a snapshot of the data, you'll notice that one column is labeled `series`, which implies that it captures more than one variable. You can easily check this by opening the dataset and scrolling through. We can also quickly check this by viewing the column as a factor variable.
+
+```{r}
+
+summary(factor(stecon_df$series))
+
+```
+
+Indeed, the `series` column captures seven variables. Stated differently, the data are not tidy! The tidyverse derives its name from its preference that data frames are organized with one variable per column and one observation per row. In this case, the data are too long to be considered tidy. That is, there are too many rows and too few columns. There are many forms of untidy data, which you can read about [chapter 12](https://r4ds.had.co.nz/tidy-data.html) of R4DS. We'll tidy the data in x.x.
+
+Now let's review the CES data.
+
+```{r}
+
+ces_df
+
+```
+
+These data appear tidy, but there are some interesting things to note. First, there are two weighting variables: `weight` and `weight_cumulative`. Weights are very important for survey data. We dive into this further in x.x. Second, there is a data type that we haven't seen: `<int + lbl>`. We'll come back to this as well in x.x.
+
+Finally, take a look at the presidents data.
+
+```{r}
+
+pres_df
+
+```
+
+Here again, you'll notice a strange class: `<I<ch>>`. This is a character variable, which is familiar, but it was saved by the maintainer "as-is." In R, this is represented `AsIs` and created with the function `I()`. This was a choice the maintainer made, presumably to protect the variables from being converted to factors in the course of wrangling. 
+
+## Interlude: the piping operator
+
+The tidyverse makes extensive use of the `%>%` operator, which is called the "pipe." The pipe actually comes from the the [magrittr](https://cran.r-project.org/web/packages/magrittr/index.html) package, but it is automatically loaded with the tidyverse.
+
+-   NB: native pipe
+
+Tidyverse functions can be used without the pipe, but it is much easier to string together multiple wrangling operations with it. Thus, it is worth discussing how the pipe is used upfront. To do so, let's take a quick break from the U.S. political economy data and create a hypothetical tibble on taxpayers.
+
+```{r}
+
+taxpayer_df <- tibble(
+  taxpayer = LETTERS[1:10],
+  income = round(rnorm(10, mean = 100, sd = 10), 2),
+  tax = income * .30
+)
+
+taxpayer_df
+
+```
+
+Say we want to create a new data frame that only captures the name of and taxes paid by high earners, defined as those making over 100. To do so, we'll foreshadow two functions from `dplyr`, the tidyverse's workhorse data wrangling package. Specifically, we can use `filter()` to extract taxpayers' whose income is greater than 100 and `select()` to select the taxpayer and tax columns.
+
+Without the pipe, the operation would look something like this.
+
+```{r}
+
+high_earner_tax <- filter(taxpayer_df, income > 100)
+
+high_earner_tax <- select(high_earner_tax, taxpayer, tax)
+
+high_earner_tax
+
+```
+
+The pipe enables us to string these operations together more seamlessly and with less repetition.
+
+```{r}
+
+high_earner_tax <- taxpayer_df %>% 
+  filter(income > 100) %>% 
+  select(taxpayer, tax)
+
+high_earner_tax
+
+```
+
+The pipe's loose translation is "then." For the above, we:
+
+-   Assign the existing `taxpayer_df` to a new data frame named `high_earner_tax`
+-   THEN, filter rows with income greater than 100
+-   THEN, select only the columns `taxpayer` and `tax`
+
+The pipe takes a bit of getting used to, but it streamlines data wrangling tasks considerably. Crucially, the keyboard shortcut for the pipe is Ctrl + Shift + M on windows (mac: Cmd + Shift + M). Using the keyboard shortcut for the pipe is much easier than typing *percent, greater than, percent*.
+
+## Reshaping
+
+Section x.x revealed that the state economic data are not tidy. Data can be made tidy through "reshaping" or "pivoting." `dplyr`'s [pivot](https://tidyr.tidyverse.org/articles/pivot.html) functions enabling this.
+
+Recall, we found that `stecon_df` is too long. We can widen it using `pivot_wider()`. In this case, we want to spread out the `series` column, so that the seven unique underlying variables have their own columns. We specify this by assigning `series` to the `names_from` argument. Next, we map the values reflected in the `value` column to the appropriate variables through the `values_from` argument.
+
+```{r}
+
+stecon_wide <- stecon_df %>% 
+  pivot_wider(names_from = series, values_from = value)
+
+stecon_wide
+
+```
+
+The data are now tidy. As with the IPE dataset, the dataset takes the form of a panel. Notice that although we did nothing with the `st` and `year` columns, the relationships between the values and these columns are still preserved.
+
+Luckily, the CES and presidents data are already tidy. Still, it is worth reviewing other common examples of untidy data in [Chapter 12](https://r4ds.had.co.nz/tidy-data.html) of R4DS. If you need to lengthen data using `dplyr` as we did in x.x with `data.table()`, use `pivot_longer()`. 
+
+## Data frame manipulation
+
+### Column Selection
+
+Selecting columns is accomplished with `dplyr`'s `select()` function. We already saw this in action through the piping interlude (section x.x). The most basic way to select columns to to list the names of the columns one wants to select one-by-one. For example:
+
+```{r}
+
+ces_df %>% select(st, year)
+
+```
+
+However, `dplyr` enables us to select columns in many different ways, which you can read about in the [`select()`](https://dplyr.tidyverse.org/reference/select.html) vignette. Below we use three different methods in one `select()` statement to narrow down the CES columns we intend to work with. Specifically, we select: 
+
+- The first six columns--`year` through `st` inclusive--using the sequence operator `:`. 
+- All the variables capturing citizens' approval of elected officials, including President, Governor, Senators, and Representative using the `starts_with()` function and exploiting the fact that the approval variables all start with the prefix "approval_". 
+- The 5-point political ideology variable.
+
+```{r}
+
+ces_approval <- ces_df %>% 
+  select(year:st, starts_with("approval_"), ideo5)
+
+ces_approval
+
+# To conserve memory
+rm(ces_df)
+
+```
+
+`ces_approval` is a narrowed down version of the CES data comprising the 12 variables we need for our analysis and primarily focusing on approval of elected representatives. 
+
+### Row filtering
+
+If you have ever been to Washington DC, you might have noticed that the license plates read "end taxation without representation." The caption serves as a double entendre. It is both a nod to the American founding and a gripe that DC is not a U.S. state. Because DC is not a state, its data coverage for the indicators we intend to analyze is spotty. Therefore, in this case, it makes sense to drop responses from DC residents in the CES data.
+
+We can accomplish this by pairing the logical operator `!=` (see x.x) with the `dplyr` function `filter()`. Because this is one short operation, it is stylistically acceptable to capture it on one line.
+
+```{r}
+
+ces_approval <- ces_approval %>% filter(st != "DC")
+
+```
+
+To take another example, we can subset the presidents data so that we only retain observations since 2004, the last Presidential election prior to the start of the CES data in 2006. For convenience, we can pair the filtering operation with a `select()` statement to narrow down the columns we need to create the "red" and "blue" states metric described in x.x.
+
+```{r}
+
+pres_0420 <- pres_df %>% 
+  filter(year >= 2004) %>% 
+  select(state_po, year, candidate, candidatevotes, party_simplified)
+
+pres_0420
+
+rm(pres_df)
+
+```
+
+You can combine `filter()` with logical operators (see: x.x) to craft a wide range of data frame subsetting operations. 
+
+### Variable creation and modification
+
+Mutating, which is executed using the `dplyr` `mutate()` function, involves creating new variables and modifying existing variables. Mutating is one of the more important data wrangling tasks, and we need to make a number of mutations to the CES data. Recall, our primary CES data wrangling goal is to transform the voter-level survey responses into into aggregate state-level indicators.
+
+To start, take a fresh look at `ces_approval`.
+
+```{r}
+
+ces_approval
+
+summary(ces_approval)
+
+```
+
+Among the key variables of interest, Presidential and Governor approval are of the strange `int+lbl` class, while the other approval variables and the five point political ideology variable are factors. Extracting the first ten Presidential approval observations allows us to zero in on the nature of the `int+label` class, which is very similar to a factor variable in R.
+
+```{r}
+
+ces_approval$approval_pres[1:10]
+
+```
+
+This type of construct is common when working with survey data in the STATA statistical programming software. The CES data appear to have been originally put together in STATA but converted to an RDS file.
+
+Shortly, we will apply a number of mutations to all of the approval variables. Therefore, it makes sense to ensure they are all the same type. In this case, we will convert Presidential and Governor approval to factors, which is in line with the other variables of interest. To do so, though, we need a new package, `haven`, which facilitates working with foreign data objects, such as those put together using STATA. Parenthetically, `haven` also enables you to import STATA datasets (.dta files) directly into R.
+
+Below we pair the `mutate()` function with `as_factor()` from `haven`. To emphasize that we are using a special-purpose package here, we preface `as_factor()` with `haven::`.
+
+```{r}
+
+ces_approval <- ces_approval %>% 
+  mutate(approval_pres = haven::as_factor(approval_pres),
+         approval_gov = haven::as_factor(approval_gov))
+
+```
+
+Working with factors can be complex. Take a look at a summary of the data.
+
+```{r}
+
+summary(ces_approval)
+
+```
+
+The levels of the factors we just converted differ from those that were already factors. As you will see momentarily, this is OK in our case. If you want to ensure the levels of various factor variables are identical, you should take care to specify the desired pattern, as illustrated in x.x.
+
+Now that all of the approval variables are factors, we will create a new variable that only captures whether an individual approves of the job an elected representative is doing or not. These binary approval variables will take on a value of 1 if an individual chose "Strongly Approve" or "Approve / Somewhat Approve" in the survey and 0 otherwise. Typically, polls depict an elected politician's approval and disapproval ratings separately. We focus on the former.
+
+One approach to developing these binary variables is to create them one-by-one. Below we create the first such variable, `approval_pres_bin`, using `mutate()` and `if_else()`, the latter of which is the `dplyr` analogue to the base R `ifelse()` with some nuances, as discussed [here](https://dplyr.tidyverse.org/reference/if_else.html). To emphasize that this is a binary variable, we append `_bin` to the name.
+
+```{r}
+
+ces_approval <- ces_approval %>% 
+  mutate(approval_pres_bin = 
+           if_else(approval_pres == "Strongly Approve" | 
+                    approval_pres == "Approve / Somewhat Approve", 1, 0))
+
+```
+
+Simple enough. To finish the job, we could repeat this operation on the other relevant columns. But this would be tedious, involve error-prone copy-pasting, and result in long, bulky code. It would be better if we could create these variables all at once.
+
+As a general matter, it is advisable to avoid too much copy-pasting. If you find yourself copy-pasting more than a couple times, you should explore a better route. One surely exists. Let's go ahead and remove the variable we just created and pursue a slicker alternative.
+
+```{r}
+
+ces_approval <- ces_approval %>% select(-approval_pres_bin)
+
+```
+
+A good approach to creating the binary approval variables in this context involves using the `dplyr` function `across()`. As the name implies, `across()` enables us to apply functions across selected columns of a data frame all at once. The basic structure for creating new variables using `across()` is:
+
+`mutate(across(*selected columns*, *function to apply*, .names = "{.col}_name"))`
+
+We can put `across()` into action to create the binary approval variables as follows:
+
+```{r}
+
+ces_approval <- ces_approval %>% 
+  mutate(across(starts_with("approval_"), 
+                ~ if_else(.x == "Strongly Approve" | 
+                           .x == "Approve / Somewhat Approve", 1, 0), 
+                .names = "{.col}_bin"))
+
+```
+
+The best way to elucidate what is going on in the code immediately above is to compare it to the single-variable example mutation involving `approval_pres_bin`. Working from left to right, the key changes are:
+
+-   We lead with `across()` rather than the new variable name
+-   We specify the columns to which the function should be applied--in this case, all the columns that start with "approval_".
+-   We introduce the function with the formula operator: `~`.
+-   Instead of specifying the column that is being transformed, we use `.x` to represent each column to which the function is being applied.
+-   We specify the naming pattern at the end, using the `.names` argument from `across()`. As in the single variable case, we append "_bin" to all of the new columns.
+
+Despite these caveats, the heart of the operation--the use of `mutate()` and the `if_else()` construct--remain the same.
+
+`across()` takes a little getting used to, but understanding how it works and the various ways in which it can be deployed pays off. To this end, it is worth reading the `across()` [vignette](https://dplyr.tidyverse.org/articles/colwise.html). It will help you understand many different options for specifying functions within the `across()` construct.
+
+Now let's turn to the five point political ideology variable, which could use a slight mutation before aggregating it to the state level. The variable ranges from 1-5 with 1 being "Very Liberal" and 5 being "Very Conservative." Ultimately, it would be nice to take the average of this variables for each state-year, but there is one complication. Currently, `ideo5` is a factor variable. Factors are encoded with integers. Take a look at the *levels* of the variable.
+
+```{r}
+
+levels(ces_approval$ideo5)
+
+```
+
+The first five levels make sense, but there is a sixth level, "Not Sure," which has no ordinal meaning. Obviously, not being sure of one's political ideology does not mean one is more conservative than very conservative citizens.
+
+Public opinion scholars have long wrestled with how to handle these types of responses, and there are sophisticated methods for doing so. Still, many opt to treat such responses as missing values. That is what we will do here.
+
+Below we first convert `ideo5` to an integer because we eventually want to take a numeric average of the variable. Next, we construct an `if_else()` statement, which specifies that if `ideo5` is equal to 6, it should be converted to `NA`. Otherwise, it should remain the same.
+
+```{r}
+
+ces_approval <- ces_approval %>% 
+  mutate(ideo5 = as.integer(ideo5)) %>% 
+  mutate(ideo5 = if_else(ideo5 == 6, NA_integer_, ideo5))
+
+```
+
+Why use `NA_integer_` and not `NA`? Recall, `NA` is a logical value (x.x). It turns out, though, we can coerce `NA` into different data types.
+
+```{r}
+
+class(NA)
+
+class(NA_real_)
+
+class(NA_integer_)
+
+class(NA_character_)
+
+```
+
+The `dplyr` function `if_else()` requires the resulting values of the true and false conditions to be of the same type. Therefore, we have to use the integer version of `NA`. The base R function `ifelse()` does not have such a requirement. If we were using base R, we could have written: `ifelse(ideo5 == 6, NA, ideo5)`. The `if_else()` function documentation (see: `?if_else()`) explains that its strict requirements make it more predictable and faster than `ifelse()`.
+
+Before moving on, let's make mutate one aspect of the presidents data. Recall from x.x that some of the variables in `pres_0420` are of the `AsIs` class. Below we convert one of these, `state_po`, which we will eventually use for merging, to a traditional character variable. 
+
+```{r}
+
+pres_0420 <- pres_0420 %>% mutate(state_po = as.character(state_po))
+
+pres_0420
+
+```
+
+We will be mutating throughout this book. Indeed, we are not even done mutating this chapter.
+
+### Renaming columns
+
+Eventually, we will use the two-letter state abbreviations in each dataset to merge the three datasets together. In `pres_0420`, the state abbreviation is named `state_po`. It makes sense to rename it `st` to be consistent with the other datasets. Renaming columns is easy using the `dplyr` function `rename()`. 
+
+- NB: not necessary and will show example later 
+
+```{r}
+
+pres_0420 <- pres_0420 %>% rename(st = state_po)
+
+```
+
+### Sorting
+
+Sorting data frames within the Tidyverse is accomplished through `dplyr`'s `arrange()` function. 
+
+A few common data frame sorting use cases include: 
+
+- Storing data according to some convention 
+- Spot checking data for errors from different vantage points
+- Ordering observations according to one or multiple variable values for analytical purposes 
+
+For panel data, it is conventional and intuitive to organize the data first by the id variable (in our case, state), then by year. Currently, none of our datasets break this convention. Thus, we don't have to take any measures within the context of the first sorting use case cited above. 
+
+However, it is always useful to spot check data from different points of view. For example, when you open the state economic data or print the first few observations, all you see is the data for Alabama. But what if you wanted to spot check a handful of states for the first year of the data? You could sort first by year and then by state. 
+
+```{r}
+
+stecon_wide %>% arrange(year, st)
+
+```
+
+Alternatively, what if you wanted to inspect the final year and/or states from the bottom of the alphabet? You could use a similar strategy as above but embed the `desc()` function in `arrange()`. 
+
+```{r}
+
+stecon_wide %>% arrange(desc(year), desc(st))
+
+```
+
+Further, it is often interesting to analyze observations according to their rank order for one or more variables. For example, we could review the largest economies in 2020 like so: 
+
+```{r}
+
+stecon_wide %>% 
+  filter(year == 2020) %>% 
+  arrange(desc(rgdp)) %>% 
+  select(st, rgdp)
+
+```
+
+Notice that we haven't overriden anything here. We are just inspecting the data interactively. 
+
+## Grouping and summarizing (Part I: for wrangling)
+
+- NB: distinguish that in some cases you are grouping to create new vars, not just summarizing
+- NB: add a spot on GDP share of regions over time using subquery
+
+Let's turn though to another important data wrangling imperative, and one where the tidyverse really shines, grouping and summarizing.
+
+It is often necessary to perform operations on subsets of data. The `dplyr` function `group_by()` makes this straightforward.
+
+In analyzing economic and demographic data, it is often of interest to work with growth rates in addition to or instead of levels. Let us calculate the growth rates of four variables in the state economic data: population, real GDP, personal income per capita, and household debt per capita. The key here is that we want to do this on a state-by-state basis. In the code below, we:
+
+-   Group by state.
+-   Calculate simple growth rates of four variables using the familiar `mutate()` and `across()` combination.
+-   Multiply the new growth rate variables by 100 and round them.
+-   Ungroup the data.
+
+```{r}
+
+stecon_df <- stecon_wide %>% 
+  group_by(st) %>% 
+  mutate(across(c(population, rgdp, pcpi, pchdebt), ~ .x / dplyr::lag(.x) - 1, 
+                .names = "{.col}_gr")) %>% 
+  mutate(across(ends_with("_gr"), ~ round(.x * 100, 2))) %>% 
+  ungroup()
+
+```
+
+`group_by()` is useful enough, but it is particularly powerful when combined with the `summarize()` function. Before using this combination to execute the key task of aggregating the CES state at the state-year level, let's look at a simpler example using the state economic data. Suppose we wanted to look at median unemployment rate across all U.S. states on an annual basis. We could implement the following:
+
+```{r}
+
+stecon_df %>% 
+  group_by(year) %>% 
+  summarize(unrate_med = median(unrate))
+
+```
+
+We want to use the `group_by()` and `summarize()` functions to roll up the CES data to the state-year level. However, we need to elucidate yet another important caveat. Recall from x.x that the CES data include weighting variables. Applying weights to observations is typically a critical aspect of working with survey data.
+
+To illustrate why, let's compare the weighted and unweighted mean approval of President Trump during the 2020 election year in Florida. To do this, we use a number of familiar tools plus a new function, `weighted.mean()`, which allows us to specify a weighting variable. In this case, we use `weight_cumulative`, which is recommended by the CES maintainers when working with the 2006 - 2020 dataset.
+
+```{r}
+
+ces_approval %>% 
+  filter(st == "FL", year == 2020) %>% 
+  summarize(approve_pres_uw = mean(approval_pres_bin, na.rm = TRUE),
+            approve_pres_w = weighted.mean(approval_pres_bin,
+                                           w = weight_cumulative,
+                                           na.rm = TRUE)) %>% 
+  mutate(approve_diff = approve_pres_w - approve_pres_uw) %>% 
+  round(., 2)
+
+```
+
+There's a difference of 3 percentage points, which is pretty big and especially important in an election year. Why the difference? One reason may be that Florida is a fairly old state age wise. Older citizens are typically more difficult to reach with online surveys. It seems reasonable, then, to give more weight to the survey's older respondents and less weight to individuals who are more likely to respond to the survey. If the survey were conducted via telephone, as many still are, it might be appropriate to down-weight older respondents!
+
+In any case, smoothing out representativeness is one of the key purposes of survey weights. I highlight the age factor because it is fairly straightforward in this case. But the weights are intended to map the response pool onto a range of national- and state-level socio-demographic characteristics.
+
+With these examples in mind, we turn to what is perhaps the most important data wrangling task of the chapter, aggregating the CES data up to the state-year level. In the code that follows, we group by state and year then take the weighted mean of the key variables of interesting using the combination of `summarize()` and `across()`. I also choose to multiply the approval variables by 100 to convert them to percentage form.
+
+```{r}
+
+ces_state <- ces_approval %>% 
+  group_by(st, year) %>% 
+  summarize(across(c(ends_with("_bin"), ideo5),
+                   ~ weighted.mean(.x,
+                                   w = weight_cumulative,
+                                   na.rm = TRUE)),
+            .groups = "drop") %>% 
+  mutate(across(ends_with("_bin"), ~.x * 100))
+
+```
+
+The construct is very similar to the `mutate()` + `across()` combination we deployed before. Here, though, we substitute `summarize()` for `mutate()` because instead of adding new variables, we are creating a whole new data frame. Notice, too, that we drop the groups directly in the `summarize()` function by setting the `.groups` argument to `"drop"`.
+
+The above code is pretty simple, but we have dramatically transformed the data. The units of observation are now state-years, rather than citizens. Take a look.
+
+```{r}
+
+ces_state
+
+```
+
+Now we turn to the presidents data. Our goal here is to identify the party of the president that won each state in each election year. To accomplish this, we group by state and year, then subset the rows that correspond to the maximum candidate votes for each state-year.
+
+```{r}
+
+pres_win <- pres_0420 %>%
+  group_by(st, year) %>% 
+  filter(candidatevotes == max(candidatevotes)) %>%
+  ungroup()
+
+```
+
+It would be fine to use the actual party name as the variable of interest, but it is more in keeping with political discourse to refer to "red" and "blue" states. Below we create a new data frame `state_color` that is the result of three operations:
+
+- Create a variable named `stcolor` that is labelled "blue" if the winning party is Democrat and red otherwise.
+
+- Set the year 2004 equal to 2006. We do this because the CES data begin in 2006, and the `stcolor` variable corresponds to the party of the candidate the state voted for in the last Presidential election.
+
+- Narrow the output down to state, year, and state color
+
+```{r}
+
+state_color <- pres_win %>% 
+  mutate(stcolor = if_else(party_simplified == "DEMOCRAT", "blue", "red")) %>% 
+  mutate(year = if_else(year == 2004, as.integer(2006), year)) %>%
+  select(st, year, stcolor)
+
+```
+
+Here again, we see how strict `if_else()` is compared to `ifelse()`.
+
+## Merging
+
+Merging datasets is a core data wrangling competency that revolves conducting common database operations called "joins." Common types...
+
+-   Inner join: short description...
+-   Left join: ...
+-   Right join: ...
+-   Outer join
+
+I almost always use left joins...Why?
+
+Merging datasets is straightforward using the `dplyr` `join` functions. With the `ces_state` dataset as our base, we can merge the three datasets via `left_join()`. In our case, we need ensure that the states and years are matched, so we specify this pattern using the `by` argument.
+
+```{r}
+
+uspe_df <- ces_state %>% 
+  left_join(stecon_df, by = c("st", "year")) %>% 
+  left_join(state_color, by = c("st", "year"))
+
+```
+
+-   Same number of rows as ces_state
+-   Open up, notice stcolor missing a lot of values
+-   Only have observations for election years
+-   Goal is to label red/blue depending on last election
+-   Therefore, need to carry the last observation forward
+-   `fill()`
+
+```{r}
+
+uspe_df <- uspe_df %>%
+  group_by(st) %>% 
+  fill(stcolor) %>% 
+  mutate(stcolor = factor(stcolor)) %>% 
+  ungroup()
+
+```
+
+```{r}
+
+st_df <- tibble(
+  st = state.abb,
+  name = state.name,
+  area_sqm = state.area 
+)
+
+```
+
+```{r}
+
+uspe_df <- uspe_df %>% 
+  left_join(st_df) %>% 
+  mutate(pop_density = population / (area_sqm / 1000)) %>% 
+  select(name, st, year, stcolor, everything())
+
+```
+
+## Finishing touches
+
+-   data appear to be in order
+-   but so important to have data right, like to ensure by sorting
+-   `arrange()`
+
+Because our approval variables now capture the percent of voters who explicitly approve of various elected politicians, I would like to replace the "approval" prefix with "approve." Further, since there is no need to distinguish them anymore from other approval variables, it makes sense to drop the "\_bin" suffix. There are slicker ways of accomplishing this, but for now, it is transparent and simple enough to rename the columns one-by-one.
+
+-   Finally round
+
+```{r}
+
+uspe_df <- uspe_df %>% 
+  arrange(st, year) %>% 
+  rename(approve_pres = approval_pres_bin,
+         approve_rep = approval_rep_bin,
+         approve_sen1 = approval_sen1_bin,
+         approve_sen2 = approval_sen2_bin,
+         approve_gov = approval_gov_bin) %>% 
+  mutate(across(-c(name:stcolor), ~ round(.x, 2)))
+
+```
+
+```{r}
+
+uspe_df
+
+```
+
+```{r}
+
+summary(uspe_df)
+
+```
+
+Nice looking dataset
+
+```{r}
+
+saveRDS(uspe_df, file = "data/uspe.rds")
+
+```

@@ -1,0 +1,74 @@
+---
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      fig.align = 'center',
+                      fig.width = 6,
+                      fig.asp = 0.7,
+                      out.width = "70%")
+options(scipen = 999)
+
+```
+
+# Getting Started
+
+## R
+
+To download and install R, visit the [Comprehensive R Archive Network (CRAN)](https://cran.r-project.org/) and following the instructions for your operating system. It is a good idea to re-install R roughly annually, so that you are using the latest version.
+
+## RStudio
+
+## Running Code
+
+-   where to run code: console vs. script editor
+-   Console: type and press enter
+-   More often run from script
+-   Point and click: Run, Source
+-   Keyboard shortcuts
+
+## Commenting
+
+-   hash
+-   Special R divider
+
+## Storing Your Work
+
+-   working directory
+-   projects
+-   global options (don't save anything - history, etc.)
+-   project specific options
+
+## Packages
+
+-   CRAN
+-   CRAN summaries
+-   Vignettes
+-   install.packages()
+-   don't have to re-install but good idea to keep eyes peeled for updates
+-   when you use packages, library(package) at the top of the script
+-   In more advanced programming, analysts often preface package
+-   when you reinstall R, as recommended in x.x, need to re-install packages
+
+## Key Resources
+
+This book leans on a few excellent manual-style resources that are cited throughout:
+
+-   R for Dummies
+-   R for Data Science (R4DS)
+-   Data Table vignettes
+
+Additional important resources that are cited and/or worth bookmarking are:
+
+-   R Core Team
+-   Cheatsheets
+-   visualization resources
+
+These resources can get you a long way in R, but they are really just the tip of the iceberg. We have not made recommendations for the methods-style books described in x.x, of which there are many great ones. Further, in Chapter X, we discuss CRAN and StackExchange.
+
+As a general matter, if you are seeking resources or help with a specific R topic, Google is your friend. Targeted searches can lead to very helpful blogs, vignettes, and free other online resources.

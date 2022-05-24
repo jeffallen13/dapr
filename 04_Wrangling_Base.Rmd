@@ -1,0 +1,621 @@
+---
+output:
+  html_document:
+    toc: yes
+    number_sections: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      fig.align = 'center',
+                      fig.width = 6,
+                      fig.asp = 0.7,
+                      out.width = "70%")
+options(scipen = 999)
+
+```
+
+# Wrangling with Base R
+
+Our goal in this chapter is to assemble a portion of the IPE dataset using Base R only. Why focus on base R at the outset? It may be tempting to skip right to another data wrangling paradigm facilitated by a set of R packages, but learning base R has a number of important advantages. To start with, base R competency helps in understanding other packages, since many packages are built on top of base R. Similarly, package development moves quickly. A package that is fashionable for a period may become obsolete over time. Understanding base R helps you pivot more seamlessly to new alternatives. Further, packages typically have a lot of dependencies, while base R effectively has no dependencies. This can be a major advantage in more advanced R programming. Often, base R methods are also faster than competing methods. Finally, you may like base R better.
+
+The dataset will capture individual countries' regime types from 2000-2020 and geographic regions. To accomplish this, we use two datasets:
+
+-   **Varieties of Democracy**: The [Varieties of Democracy (V-Dem)](https://www.v-dem.net/) dataset (Coppedge et al. 2021) is maintained by the V-Dem Institute at the University of Gothenburg. It includes indices measuring countries' political regime types on a 0-1 scale, where 1 is most democratic and 0 is least democratic.
+-   **World Bank Country and Lending Groups**: The World Bank's 2020 [income group and region classifications](https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups) for global economies.
+
+We will focus on three indicators from the V-Dem dataset: `v2x_polyarchy`,`v2x_libdem`, and `v2x_regime`. Below is a brief description of the indicators adapted from the [V-Dem codebook](https://www.v-dem.net/static/website/img/refs/codebookv111.pdf). The codebook provides more detail about how these indicators are developed.
+
+-   `v2x_polyarchy`: Measures the extent to which a country is an *electoral* democracy. Some factors that influence this index are the fairness and competitiveness of elections, the extent of suffrage, and freedom of political expression, among others.
+-   `v2x_libdem`: Measures the extent to which a country is a *liberal* democracy. The notion of liberal democracy generally goes beyond that of an electoral democracy. And indeed, V-Dem's liberal democracy index takes the electoral democracy index into account but includes a broader set of considerations, including the protection of individual and minority rights, checks and balances, the rule of law, and independent judiciaries, among other factors.
+- `v2x_regime`: 
+
+For the classifications data, we are primarily interested in extracting the geographic region variable. The dataset also includes income group classifications, but income groups change over time. In chapter x.x, we will leverage a different dataset to merge time-varying income groups with our data.
+
+With that as backdrop, we turn to importing and inspecting our data.
+
+## Importing and inspecting data
+
+R can read a wide variety of file types. The classifications dataset is saved as a Comma Separated Value (CSV) file, which can be imported using the `read.csv()` function. Because the data are stored in the "data-raw" sub-folder of the R project, we need to preface the name of the file with `data-raw/`. Below we read the file and directly assign it to an object named `class_df`. You can name the data frame anything you want. The name `class_df` is generally consistent with the naming strategy discussed in x.x.
+
+```{r import-class}
+
+class_df <- read.csv("data-raw/CLASS.csv")
+
+```
+
+`read.csv()` stores the dataset as a data frame. We can confirm this using the `class()` function.
+
+```{r class-class}
+
+class(class_df)
+
+```
+
+The V-Dem dataset can be downloaded from the V-Dem website as an RDS file--a file type native to R. An advantage of an RDS file is it preserves changes that data maintainers make to the data types. We import such a file using `readRDS()`.
+
+```{r import-vdem}
+
+vdem_df <- readRDS("data-raw/V-Dem-CY-Core-v11.1.rds")
+
+```
+
+The easiest way to get a sense of a data frame's dimensions is to simply look at the object in your Global Environment. In this case, the Global Environment tells you that `class_df` has 218 observations (rows) and 4 variables (columns), while `vdem_df` is much larger at 27192 observations and 1818 variables.
+
+![](images/base_env.PNG)
+
+Similarly, an easy way to get a sense of what the variables in a data frame look like is to click on the object and view it. For example, if you click on `class_df`, it will appear in the upper left quadrant of RStudio. You can scroll through it much like you would a spreadsheet.
+
+![](images/base_scroll.PNG)
+
+There are other methods of printing basic information about and snapshots of your data, which are especially useful when writing documents for others' consumption. For example, you can print `vdem_df`'s dimensions using `dim()`.
+
+```{r dim-vdem}
+
+dim(vdem_df)
+
+```
+
+Additionally, `head()` or `tail()` allow you to print the first or last few observations.
+
+```{r head-class}
+
+head(class_df)
+
+```
+
+These functions default to printing 6 observations and all of the columns, which may not be desirable, particularly when a data frame is too big. You can override this behavior by supplying a vector of dimensions to `head()` or `tail()`. For example:
+
+```{r head-vdem}
+
+head(vdem_df, c(10, 6))
+
+```
+
+Two of the most important functions for inspecting data are `str()` and `summary()`. The former provides information about the data types of each variable in a data frame. The latter supplies summary statistics about each variable. We'll use these functions throughout the data wrangling process to see how variables are evolving.
+
+Take a look at the structures of the variables in `class_df`.
+
+```{r str-class}
+
+str(class_df)
+
+```
+
+All four variables are currently character variables. Eventually, we will convert the region variable to a factor. In the meantime, though, the `class_df` summary is fairly uninteresting.
+
+```{r summary-class}
+
+summary(class_df)
+
+```
+
+Let's do the same for `vdem_df`, but because it has so many variables, we'll narrow the output to our variables of interest, leaving aside `v2x_regime` for now.
+
+```{r str-vdem}
+
+str(vdem_df[c("country_text_id", "year", "v2x_polyarchy", "v2x_libdem")])
+
+```
+
+While `country_text_id` is a character, the other variables are numeric. Now use `summary()` to inspect the same variables.
+
+```{r summary-vdem}
+
+summary(vdem_df[c("country_text_id", "year", "v2x_polyarchy", "v2x_libdem")])
+
+```
+
+Here we obtain some valuable information about the distribution of our variables. There are at least four important things to observe:
+
+-   `year` extends back to 1789! We will soon subset the data to focus on the 21st century.
+-   Both `v2x_polyarchy` and `v2x_libdem` are bound between 0-1 and never hit 0 or 1 precisely.
+-   The data contain a non-trivial number of missing values.
+-   Perhaps most importantly, the distribution of `v2x_polyarchy` generally sits at a structurally higher level than that of `v2x_libdem`. This is consistent with point raised in section 1 that the standards for being considered a liberal democracy or more strenuous than those involved in being considered an electoral democracy.
+
+## Data frame manipulation
+
+### Renaming
+
+It is often desirable to rename columns. Some common use cases are renaming columns in order to:
+
+-   Conform to style preferences. For example, one may prefer lower case variable names or a certain naming convention.
+-   Shorten variable names, so that they are easier to work with. For example, `gdp_growth` is more compact than `Gross Domestic Product (% change)`.
+-   Give variables meaningful names. For example, `vote_choice` is more meaningful than `surveyQ12`.
+-   Ensure common variables in different datasets have the same name to facilitate merging.
+
+Picking up on the first use case, we can convert the column names in `class_df` to lower case by using a combination of `colnames()` and `tolower()`.
+
+```{r colnames-class}
+
+colnames(class_df) <- tolower(colnames(class_df))
+
+```
+
+Eventually, we will merge a slice of `class_df` with a slice of `vdem_df`. To do so, the two datasets need at least one common variable. In our case, we will merge the datasets on the country code. In section x.x, we elaborate on some nuances of the country code and why it is generally better than merging on country name. In the meantime, it is helpful to change the name of `country_text_id` in `vdem_df` to `code` to match the variable name in `class_df`. Further, let's shorten the `country_name` variable in `vdem_df` to `country`. We can do so using `colnames()` and identifying the positions of these variables in the data frame.
+
+```{r colnames-vdem}
+
+colnames(vdem_df)[1:2] <- c("country", "code")
+
+```
+
+### Column selection
+
+The only variables we need from `class_df` are `code` and `region`. If we want to narrow down the data frame, there are multiple ways to select the two columns. Below are three equivalent methods. Note that we are saving the results as a new data frame named `region_df` because the only substantive variable remaining is the geographic region.
+
+```{r columns-region}
+
+# Using column indices
+region_df <- class_df[2:3]
+
+# Using negative indexing
+region_df <- class_df[-c(1,4)]
+
+# Using column names 
+region_df <- class_df[c("code", "region")]
+
+```
+
+Selecting columns by name is generally safer than using column indices. Why? Columns are often re-ordered or renamed for a variety of reasons. Using names ensures you select the columns you intend. However, listing all of the column names is sometimes impractical, particularly when you are selecting many columns. In such cases, using column indices may be more practical.
+
+### Row subsetting
+
+Subsetting rows in R is best illustrated through an example. Say we want to select all of the columns in `region_df` for India (in this case only two columns). We do so as follows:
+
+```{r rows-India}
+
+region_df[region_df$code == "IND",]
+
+```
+
+Notice that we use a comma after the row identifier. As introduced in x.x, the general form for selecting rows and columns from a data frame is `dfName[rows, columns]`. R defaults to selecting columns. Therefore, if you simply want to select all rows for certain columns, you can omit the comma, as we did in x.x. If you intend to subset any rows, though, a comma is necessary.
+
+As we discovered in x.x, `vdem_df` extends all the way back to 1789. We are only going to work with 20th century data. Therefore, we'll create a new data frame that only retains the V-Dem observations since 2000. While we're at it, let's also select only those columns we need. Again, we'll rename the data frame to something that reminds us of our modifications. In this case, we use `_0021` because the data frame extends from 2000-2021.
+
+```{r rows-vdem}
+
+vdem_0021 <- vdem_df[vdem_df$year > 1999, c("country", 
+                                            "code", 
+                                            "year", 
+                                            "v2x_polyarchy", 
+                                            "v2x_libdem",
+                                            "v2x_regime")]
+```
+
+The syntax above works well enough. As an alternative, you can use the `subset()` function to accomplish the same task.
+
+```{r subset-vdem}
+
+vdem_0021 <- subset(vdem_df, year > 1999, 
+                    select = c(country, 
+                               code, 
+                               year, 
+                               v2x_polyarchy, 
+                               v2x_libdem,
+                               v2x_regime))
+```
+
+Notice that when using `subset()`'s `select` argument, we do not need to wrap the variables in quotations.
+
+### Sorting
+
+You may have noticed when inspecting the V-Dem data that Mexico is listed at the top of the data frame. It is more conventional to list the observations in alphabetical order. Our data actually take the form of a panel, meaning that we have repeated observations across time for given units. In other words, we have country-year data. Ideally, our data will first be sorted on country name, then on the year.
+
+In base R, we use a bit of a round-a-bout method for sorting data. First, we can identify the proper ordering of our variables using the `order()` function and save the ordering as an object. Below we call that object `index`.
+
+```{r order-vdem}
+
+index <- order(vdem_0021$country, vdem_0021$year)
+
+```
+
+Next, we re-order the data frame by supplying `index` to the rows position of the data frame and overriding the existing data frame.
+
+```{r sort-vdem}
+
+vdem_0021 <- vdem_0021[index,]
+
+```
+
+Now look at a snapshot of `vdem_0021`.
+
+```{r}
+
+head(vdem_0021)
+
+```
+
+Afghanistan is on top, and the years appear to be in ascending order, which is the way the data should be sorted. However, now the row names are distracting. Having retained their original ordering, they begin at 5416. It would be more intuitive to re-name the rows, so that they begin at 1. Renaming rows is straightforward with `row.names()`. Below we rename the rows 1 through the number of rows in the data frame.
+
+```{r rnames-vdem}
+
+row.names(vdem_0021) <- 1:nrow(vdem_0021)
+
+```
+
+### Variable modification and creation
+
+Modifying existing variables and creating new ones is integral to data wrangling. In base R, variable modification and creation revolves around the `$` operator.
+
+You may have noticed that `region` in `region_df` is shared for multiple observations. That is, it should be a factor variable, but it is currently a character variable. The same could be said for `code`, but we use `code` primarily as an identifier, rather than as an analytical variable. Therefore, we will leave it as a character. We can convert `region` using the `factor()` function and overwriting the existing region variable using `$`.
+
+```{r factor-region}
+
+region_df$region <- factor(region_df$region)
+
+```
+
+Now the `region` variable captures the number of observations that fall into each region.
+
+```{r summary-regionFactor}
+
+summary(region_df)
+
+```
+
+Europe & Central Asia has the most countries, while North America only contains three observations. We can quickly check which countries are in which region using any the row subsetting methods discussed in x.x. For example, using `subset()`, we find that the North America region comprises Bermuda, Canada, and USA.
+
+```{r subset-NAM}
+
+subset(region_df, region == "North America")
+
+```
+
+Let's turn to a more complex task dealing with missing values. Take a look at the summary of `vdem_0021`.
+
+```{r summary-vdem0020}
+
+summary(vdem_0021)
+
+```
+
+Recall there were quite a few missing values in the full V-Dem data. After subsetting the data to only focus on 2000-2020, there are only two missing values for `v2x_libdem`. In chapter X, we focus on more sophisticated ways of dealing with missing values. Because there are only two here, there may be a fair way to address the missing values manually.
+
+First, we need to check which observations are missing data. To do this, we can use the `which()` function. Below, we identify the rows for which `v2x_libdem` is `NA`.
+
+```{r which-rows}
+
+which(is.na(vdem_0021$v2x_libdem))
+
+```
+
+We can more directly identify the countries that are missing `v2x_libdem` by plugging the code above into the basic data frame subsetting mechanism.
+
+```{r na-vdem}
+
+vdem_0021[which(is.na(vdem_0021$v2x_libdem)), c("country", "year", "v2x_libdem")]
+
+```
+
+Bahrain is missing `v2x_libdem` for the years 2000 and 2001. The V-Dem codebook does not address these missing values specifically, but the Wikipedia page, [Politics of Bahrain](https://en.wikipedia.org/wiki/Politics_of_Bahrain), indicates that Bahrain became a constitutional monarchy in 2002 based on a referendum that took place in 2001. It is quite likely that the missing data have to do with this political transition.
+
+Before dealing with these missing values, it is important to emphasize that many functions will return `NA` if there are any `NA`s present. For example, taking the mean of `v2x_libdem` returns `NA`.
+
+```{r mean-libdem}
+
+mean(vdem_0021$v2x_libdem)
+
+```
+
+Fortunately, many functions enable you to specify that `NA`s should be removed when applying the function.
+
+```{r mean-libdem-narm}
+
+mean(vdem_0021$v2x_libdem, na.rm = TRUE)
+
+```
+
+Let's return to addressing the missing values. First, it is useful to review the `v2x_libdem` series for Bahrain. There are many ways to do this, but below we assign the `v2x_libdem` series for Bahrain to a vector named `bahrain.libdem`. We also wrap it in parentheses, which automatically prints the output. Notice that we haven't used a comma in the subsetting below even though we are selecting certain rows. This may seem to contradict the mechanism outlined in x.x, but below we are only subsetting the one-dimensional vector `v2x_libdem`, not the full data frame.
+
+```{r bahrain-vector}
+
+(bahrain.libdem <- vdem_0021$v2x_libdem[vdem_0021$country == "Bahrain"])
+
+```
+
+Naming the observations in `bahrain.libdem` with the proper year helps illustrate more clearly what is going on.
+
+```{r bahrain-name}
+
+names(bahrain.libdem) <- 2000:2020
+
+bahrain.libdem
+
+```
+
+A simple approach to imputing the missing values for 2000 and 2001 is to carry the first numeric observation--in this case, 0.068--backward. One way to accomplish this is illustrated below.
+
+```{r impute-bahrain}
+
+vdem_0021[is.na(vdem_0021$v2x_libdem),]$v2x_libdem <- bahrain.libdem[3]
+
+```
+
+We have not seen this precise syntax yet, but the left-hand-side combines elements of row subsetting and variable modification covered previously. On the right-hand-side, we assign the third observation in `bahrain.libdem` to the missing values.
+
+Have a look at `v2x_libdem` for Bahrain now. The first three observations are equal to Bahrain's score in 2002.
+
+```{r bahrain-revisited}
+
+vdem_0021$v2x_libdem[vdem_0021$country == "Bahrain"]
+
+```
+
+Another aspect of our dataset that could pose challenges is that the region names are quite long.
+
+```{r levels-region}
+
+levels(region_df$region)
+
+```
+
+Having another variable that captures the regions' acronyms will come in handy, especially for visualization. An easy way to do this is to exploit the `labels` argument of the `factor()` function. Below we create a new variable `region_abb` based on the existing `region` variable. We are not actually converting `region` to a factor because it is already in the correct form. Rather we are using a side effect of the `factor()` function to accomplish our task.
+
+```{r labels-abb}
+
+region_df$region_abb <- factor(region_df$region, 
+                               labels = c("EAP", 
+                                          "ECA", 
+                                          "LAC", 
+                                          "MENA", 
+                                          "NAM", 
+                                          "SAS", 
+                                          "SSA"))
+
+summary(region_df)
+
+```
+
+Yet another common variable creation use case is developing binary or categorical variables out of numeric variables. If you need to create a binary variable from a numeric variable, the best approach is to use `ifelse()` and specify a threshold above (below) which observations are categorized as 1 (0). Creating categorical variables from numeric variables by specifying certain thresholds is straightforward using the `cut()` function. 
+
+It turns out that the V-Dem dataset already includes `v2x_regime`, which, as discussed in the V-Dem code book takes on the following values: 0 - Closed autocracy, 1 - Electoral autocracy, 2 - Electoral democracy, and 3 - Liberal democracy. You can read more about this metric in [Luhrmann et al. (2018)](https://www.tandfonline.com/doi/full/10.1080/13510347.2019.1613980). In the dataset, `v2x_regime` is currently a numeric variable. 
+
+```{r regime-integer}
+
+str(vdem_0021$v2x_regime)
+
+summary(vdem_0021$v2x_regime)
+
+```
+
+It would be better if it were a factor variable with the corresponding descriptive labels identified above. Further, while others may not see it this way, we choose to view `v2x_regime` as an ordered factor, in which the levels have meaning and liberal democracy represents the highest ideal. If the variable were not already coded in increasing order from 0-3, we would use the `levels` argument of `factor()` to specify the ordering. Here, however, all we need to do is specify the labels appropriately. 
+
+
+```{r factor-v2xregime}
+
+vdem_0021$v2x_regime <- factor(vdem_0021$v2x_regime,
+                               labels = c("Closed autocracy",
+                                          "Electoral autocracy",
+                                          "Electoral democracy",
+                                          "Liberal democracy"))
+
+summary(vdem_0021)
+
+```
+
+These are but a modest few applications of variable modification and creation. We will be modifying and creating variables throughout the book.
+
+## Merging
+
+Our next task is to merge `vdem_0021` and `region_df`. That is, we will combine columns from the two data frames by matching observations on a common variable. In database parlance, merging is called **joining** and data frames are called **tables**. The three most common types of joins are defined below according to which observations they preserve between two tables:
+
+-   **Inner join**: preserve the intersection of tables 1 and 2.
+-   **Left outer join**: preserve all observations in table 1 and append only those observations from table 2 that have matching observations in table 1. The less common right outer join is just the opposite.
+-   **Full outer join**: preserve all observations in tables 1 and 2.
+
+Joins are central to Structured Query Language (SQL) programming, which is used in obtaining and working with data stored in databases, particularly Relational Database Management Systems (RDMS)s. Parenthetically, when using R in enterprise settings, it is quite common to pull data directly into R from databases using SQL queries. It is worth reading a bit more about [Joins in SQL](https://en.wikipedia.org/wiki/Join_(SQL)) to understand their functioning and parallels in R. [Chapter 13](https://r4ds.had.co.nz/relational-data.html) of R4DS also contains a good primer on joins and relational data more generally.
+
+In a more sophisticated RDMSs, it is good practice for each table within a database to have a **primary key**, which uniquely identifies each record in the table. `region_df` clearly has a primary key: `code`. But does `vdem_0021`? The answer is more complex. Its primary key is a **composite key**, wherein each record is uniquely identified by the combination of multiple columns--in this case, `code` (or, equivalently, `country`) and `year`. We could create a more explicit primary key by pasting `code` and `year` together, but it is sufficient to recognize that `vdem_0021` has a composite key. Within the context of `vdem_0021`, `code` is a **foreign key** because it uniquely identifies observations in a different table.
+
+Database terminology may seem esoteric, but joining tables (ie, data frames) is really quite intuitive, so long as you pay close attention to unique identifiers and common variables between tables. Though we are not working with in a database setting here, it is still good to be aware of the terminology and maintain some consistency with database management principles. Someday, you may choose to store your data in a database, so that others can more easily access it.
+
+We are nearly ready to join `vdem_0021` and `region_df`, but before we do, we need to investigate the nature of the `code` variable in the two data frames. As a general matter, merging cross-country data on country codes is safer than merging on country names because country names can differ significantly from dataset to dataset. For example, take a look at how Egypt's name differs between `class_df` and `vdem_df`.
+
+```{r name-egypt}
+
+subset(class_df, code == "EGY", select = economy)
+
+subset(vdem_df, code == "EGY" & year == 2020, select = country)
+
+```
+
+Though country codes are more reliable as merging variables, you still need to be careful. There is no single set of country codes. The most common country code is [ISO's Alpha-3 code](https://www.iso.org/obp/ui/#search) (iso3c). The R package [countrycode](https://cran.r-project.org/web/packages/countrycode/index.html) can actually help match different sets of codes.
+
+In our case, the country codes used by V-Dem and the World Bank are similar to, but slightly different from, both the ISO convention and each other. Therefore, it is prudent to check which country codes differ between the datasets. To do this, we can make use of the `%in%` operator, which checks whether specified observations exist in a given vector. For example, if we check whether the number 5 is in a vector that contains 5, `%in%` returns the logical value `TRUE`.
+
+```{r in-five}
+
+5 %in% c(3, 5, 7)
+
+```
+
+What's more, `%in%` can check whether a group of observations exists in another group, and it ignores order. Below, `%in%` tells us that the first observation in the first vector, 5, does exist somewhere in the second vector, while 2 and 9 do not.
+
+```{r in-vector}
+
+c(5, 2, 9) %in% c(3, 5, 7)
+
+```
+
+This is perfect for our case. We want to check which codes exist in `vdem_0021` but not in `region_df`. We accomplish this by subsetting `vdem_0021` where the country codes do not exist in `region_df`. The core of the code below is `vdem_0021[vdem_0021$code %in% region_df$code == FALSE,]`. The rest is for convenience.
+
+```{r codes-mismatch}
+
+unique(vdem_0021[vdem_0021$code %in% region_df$code == FALSE, c("country", "code")])
+
+```
+
+The country codes for three jurisdictions in `vdem_0021`--Palestine/Gaza, Somaliland, and Zanzibar--do not exist in `region_df`. For Palestine/Gaza, the country code used in `vdem_0021`, PSG, differs from that of `region_df`, PSE. PSE is actually consistent with ISO and, to foreshadow a bit, the codes used in the World Bank data we'll merge later in the book. It makes sense, then, to replace PSG with PSE in `vdem_0021`.
+
+```{r replace-pse}
+
+vdem_0021[vdem_0021$code == "PSG",]$code <- "PSE"
+
+```
+
+The World Bank does not maintain economic data for Somaliland and Zanzibar. Since we will eventually merge additional economic data with the current data, we should go ahead and filter out Somaliland and Zanzibar.
+
+```{r filter-som-zan}
+
+vdem_0021 <- subset(vdem_0021, code != "SML" & code != "ZZB")
+
+```
+
+All of this raises a complex and unsettled question: what is a country? World Bank data oscillates between labeling observations as *countries* and as *economies*. The [World Bank Country and Lending Groups](https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups) webpage sheds a bit more light on this: "The term country, used interchangeably with economy, does not imply political independence but refers to any territory for which authorities report separate social or economic statistics." A number of countries tracked by V-Dem are also not recognized as countries by certain international bodies--for example, the [United Nations](https://www.un.org/en/about-us/member-states). It is worth reading further about this debate in the political science and international law literature. For now, with the exceptions identified above, we will use the list of countries tracked by V-Dem as our base.
+
+Finally, we are ready to join `vdem_0021` and `region_df`. The base R function for joining data is `merge()`. `merge()` defaults to an inner join. Technically, it uses a "natural" join, which is a special case of an inner join that only preserves one copy of common columns. In some disciplines, the inner join is used most frequently. However, when working with economic and political data, the left outer join ("left join" for short) is arguably the most common joining pattern.
+
+Below we merge `vdem_0021` and `region_df` on `code`, which is specified through the `by` argument. We also specify a left join through `all.x = TRUE`. The resulting data frame will contain all the records from `vdem_0021` and each record's associated region from `region_df`.
+
+```{r merge-vdem}
+
+vdem_0021 <- merge(vdem_0021, region_df, by = "code", all.x = TRUE)
+
+```
+
+In our case, specifying `by = "code"` is optional because there is only one common variable between the two data frames. In many cases, though, it is necessary to merge on multiple variables. In such cases, we would need to identify the correct variables in `by`. For example, if we were merging on `code` and `year`, we would specify `by = c("code", "year")`.
+
+In viewing the summary of `vdem_0021`, we see that the data frame now contains the `region` and `region_abb` variables.
+
+```{r}
+
+summary(vdem_0021)
+
+```
+
+The fact that there are no missing values for `region` or `region_abb` indicates that each observation in `vdem_0021` had a matching region. This is certainly not always the case. When executing a left join, it is common for some observations in table 1 to not have a matching observation from table 2. In such cases, the table 1 observations that do not have matched observations will have a missing value for the appended columns.
+
+## Grouping and summarizing
+
+Now that our data frame contains the variables we intend to analyze, and they are in the correct form, we can begin to explore how regime type varies by region. Base R offers a range of methods for grouping and summarizing data. These techniques go hand-in-hand with visualization, so we will revisit them in more depth in the Part X.
+
+We begin by exploring the mean of `v2x_polyarchy` for each region using `tapply()`, which stands for "table apply." `tapply()` follows the **Split, Apply, Combine** method of summarizing data. The code below splits `v2x_libdem` by region, applies the function `mean()`, and combines the results into a vector.
+
+```{r tapply-polyarchy}
+
+tapply(vdem_0021$v2x_polyarchy, vdem_0021$region, mean)
+
+```
+
+We can do the same for `v2x_libdem`, but below we tighten up the code using `with()`, clean up the output using `round()`, store the summary as a new object named `libdem.region`, and wrap the expression in parentheses for automatic display.
+
+```{r tapply-region}
+
+(libdem.region <- round(with(vdem_0021, tapply(v2x_libdem, region, mean)), 2))
+
+```
+
+It would be interesting to explore the gap between the strength of electoral democracy and liberal democracy in each region. To do this, we create the vector `polyarchy.region` and examine the difference between it and `libdem.region`.
+
+```{r difference-tapple}
+
+polyarchy.region <- round(with(vdem_0021, tapply(v2x_polyarchy, region, mean)), 2)
+
+polyarchy.region - libdem.region
+
+```
+
+The gap speaks to the extent to which the core features of liberal democracy lag behind electoral competitiveness in each region. Be careful in interpreting the results. Middle East & North Africa has a low gap, but that owes, in part, to the lack of electoral competitiveness in the region.
+
+We can accomplish a similar task through the `aggregate()` function, which uses the formula operator `~`.
+
+```{r aggregate-libdem}
+
+aggregate(v2x_libdem ~ region_abb, data = vdem_0021, mean)
+
+```
+
+`aggregate()` makes it easy to group and summarize based on multiple conditions. Below we create a new object `polyarchy_region` that contains the mean of `v2x_polyarchy` for each year-region combination.
+
+```{r}
+
+polyarchy_region <- 
+  aggregate(v2x_polyarchy ~ year + region_abb, data = vdem_0021, mean)
+
+head(polyarchy_region, 10)
+
+```
+
+The output from `aggregate()` is a data frame, hence the use of snake case naming.
+
+```{r class-aggregate}
+
+class(polyarchy_region)
+
+```
+
+Our tables thus far have have summarized the mean of numeric variables across factor variables. A different angle involves looking at how observation frequencies vary between two factor variables using a **two-way table**. Below we investigate how the ordinal variable, `v2x_libdem_4c`, varies across regions using `table()`. Notice that we can directly re-name the categories of interest within the function.
+
+```{r regime-reg}
+
+(regime.reg <- with(vdem_0021, 
+                    table("Region" = region_abb, 
+                          "Regime Type" = v2x_regime)))
+
+```
+
+`regime.reg` tells us the number of observations that fit into each region-regime combination. It is often useful to add the column and row totals to a two-way table. We do this using `addmargins()`.
+
+```{r margins-two}
+
+addmargins(regime.reg)
+
+```
+
+A proportion table is similar to a two-way table, but it captures the proportion of observations in each cell in relation to the row or column totals. The `prop.table()` function converts a two-way table into a proportion table. Below we feed`regime.reg` to `prop.table()` and specify `margins = 1`. This means we will take proportions in relation to the row totals. In other words, we are looking at the proportion of observations by region that fall into each regime type category. Specifying `margins = 2` would allow us to investigate proportions column-wise.
+
+```{r prop-table}
+
+(regime.reg.prop <- round(prop.table(regime.reg, margin = 1), digits = 2))
+
+```
+
+## Finishing touches
+
+Before finalizing a dataset, you may want rearrange the variables in a manner that suits your organizational preferences. It is conventional keep identifying information on the left-hand-side of a dataset. Otherwise, column ordering is largely a matter of taste. Below we move the region variables to the left of the regime variables.
+
+```{r column-arrange}
+
+vdem_0021 <- vdem_0021[c("code", "country", "year", "region", 
+                         "region_abb","v2x_polyarchy", "v2x_libdem", 
+                         "v2x_regime")]
+
+summary(vdem_0021)
+
+```
+
+Finally, we save our dataset to the data folder as an RDS file, which preserves data type modifications we have made.
+
+```{r save-vdem}
+
+saveRDS(vdem_0021, "data/vdem_0021.rds")
+
+```
+
+# References {.unnumbered}
+
+Coppedge, Michael, John Gerring, Carl Henrik Knutsen, Staffan I. Lindberg, Jan Teorell, Nazifa Alizada, David Altman, Michael Bernhard, Agnes Cornell, M. Steven Fish, Lisa Gastaldi, Haakon Gjerløw, Adam Glynn, Allen Hicken, Garry Hindle, Nina Ilchenko, Joshua Krusell, Anna Luhrmann, Seraphine F. Maerz, Kyle L. Marquardt, Kelly McMann, Valeriya Mechkova, Juraj Medzihorsky, Pamela Paxton, Daniel Pemstein, Josefine Pernes, Johannes von Romer, Brigitte Seim, Rachel Sigman, Svend-Erik Skaaning, Jeffrey Staton, Aksel Sundstrom, Eitan Tzelgov, Yi-ting Wang, Tore Wig, Steven Wilson and Daniel Ziblatt. 2021. "V-Dem [Country-- Year/Country--Date] Dataset v11.1" Varieties of Democracy (V-Dem) Project. <https://doi.org/10.23696/vdemds21>.
+
+Lührmann, Anna, Sandra Grahn, Richard Morgan, Shreeya Pillai, and Staffan Lindberg. 2019. "State of the world 2018: democracy facing global challenges." Democratization: 26(6), 895-915. https://doi.org/10.1080/13510347.2019.1613980. 
