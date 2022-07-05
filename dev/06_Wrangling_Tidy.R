@@ -57,10 +57,25 @@ high_earner_tax
 
 # Reshape --------------------------------------------------------------------
 
+# The only wrangling imperative 
+## Note, though, that when plotting, this is the form we want if want to plot
+## multiple series for single state
 stecon_wide <- stecon_df %>% 
   pivot_wider(names_from = series, values_from = value)
 
 stecon_wide
+
+# Common to see economic data with year
+stur_year <- stecon_wide %>% 
+  select(st:unrate) %>% 
+  pivot_wider(names_from = year, values_from = unrate)
+
+stur_year
+
+stur_long <- stur_year %>% 
+  pivot_longer(!st, names_to = "year", values_to = "unrate")
+
+stur_long
 
 
 # Data Frame Manipulation -------------------------------------------------
@@ -80,11 +95,13 @@ rm(ces_df) # to conserve memory
 
 ces_approval <- ces_approval %>% filter(st != "DC")
 
-pres_0420 <- pres_df %>% 
+## Below is unnecessary and gives rise to stupid name; just print examples
+
+pres_ces <- pres_df %>% 
   filter(year >= 2004) %>% 
   select(state_po, year, candidate, candidatevotes, party_simplified)
 
-pres_0420
+pres_ces
 
 rm(pres_df)
 
@@ -129,13 +146,13 @@ class(NA_integer_)
 
 class(NA_character_)
 
-pres_0420 <- pres_0420 %>% mutate(state_po = as.character(state_po))
+pres_ces <- pres_ces %>% mutate(state_po = as.character(state_po))
 
-pres_0420
+pres_ces
 
 # Renaming variables
 
-pres_0420 <- pres_0420 %>% rename(st = state_po)
+pres_ces <- pres_ces %>% rename(st = state_po)
 
 # Sorting
 
@@ -182,7 +199,7 @@ ces_state <- ces_approval %>%
 
 ces_state
 
-pres_win <- pres_0420 %>%
+pres_win <- pres_ces %>%
   group_by(st, year) %>% 
   filter(candidatevotes == max(candidatevotes)) %>%
   ungroup()
@@ -218,11 +235,19 @@ st_df <- st_df %>%
   mutate(region = if_else(region == "North Central", "Midwest", region)) %>% 
   mutate(region = as.factor(region))
 
+# Inflation
+cpi_df <- readRDS("data-raw/reg_cpi.rds")
+
+inflation_df <- cpi_df %>% 
+  group_by(region) %>% 
+  mutate(inflation = (cpi / dplyr::lag(cpi) - 1) * 100) %>% 
+  ungroup()
+
 uspe_df <- uspe_df %>% 
   left_join(st_df, by = c("st" = "state_abb")) %>% 
   mutate(pop_density = population / (area_sqm / 1000)) %>%
-  select(name, st, year, region, stcolor, everything())
-
+  left_join(inflation_df, by = c("region", "year"))
+  
 
 # Finishing touches -------------------------------------------------------
 
@@ -233,6 +258,7 @@ uspe_df <- uspe_df %>%
          approve_sen1 = approval_sen1_bin,
          approve_sen2 = approval_sen2_bin,
          approve_gov = approval_gov_bin) %>% 
+  select(name, st, year, region, stcolor, everything()) %>% 
   mutate(across(-c(name:stcolor), ~ round(.x, 2)))
 
 uspe_df

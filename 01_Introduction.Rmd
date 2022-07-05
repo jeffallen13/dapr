@@ -65,6 +65,17 @@ The plan of this book is straightforward. In Part I, we address preliminaries. C
 
 ## Data
 
+### Types of data
+
+- Cite Wool
+
+- Cross-section
+- Time series
+- Pooled
+- Panel
+
+### Data in this book
+
 In Part II, we develop two datasets that we explore in Part III. The first dataset, which we assemble in Chapters 4 and 5, includes a range of country-level economic and political variables over the course of 2000-2020. Because the data enable us to explore questions at the intersection of international economics and politics, we call it the International Political Economy (IPE) dataset. In Chapter 6, we put together another dataset that includes U.S. state-level economic and political variables over the course of 2006-2020. Fittingly, we call this the U.S. Political Economy (USPE) dataset. 
 
 At the beginning of each chapter, we describe the underlying data we use to assemble the datasets. All of the data necessary to complete each chapter is available at the book's Github repository (repo), which can be found here. This includes the final datasets we put together in Part II in case you want to skip ahead and focus on the visualization chapters. To download the data, navigate to the `data-raw` folder of the Github repo and download the relevant dataset. 

@@ -223,7 +223,7 @@ stecon_wide
 
 The data are now tidy. As with the IPE dataset, the dataset takes the form of a panel. Notice that although we did nothing with the `st` and `year` columns, the relationships between the values and these columns are still preserved.
 
-Luckily, the CES and presidents data are already tidy. Still, it is worth reviewing other common examples of untidy data in [Chapter 12](https://r4ds.had.co.nz/tidy-data.html) of R4DS. If you need to lengthen data using `dplyr` as we did in x.x with `data.table()`, use `pivot_longer()`. 
+- Add discussion of pivot_longer (see code)
 
 ## Data frame manipulation
 
@@ -273,11 +273,11 @@ To take another example, we can subset the presidents data so that we only retai
 
 ```{r}
 
-pres_0420 <- pres_df %>% 
+pres_ces <- pres_df %>% 
   filter(year >= 2004) %>% 
   select(state_po, year, candidate, candidatevotes, party_simplified)
 
-pres_0420
+pres_ces
 
 rm(pres_df)
 
@@ -420,13 +420,13 @@ class(NA_character_)
 
 The `dplyr` function `if_else()` requires the resulting values of the true and false conditions to be of the same type. Therefore, we have to use the integer version of `NA`. The base R function `ifelse()` does not have such a requirement. If we were using base R, we could have written: `ifelse(ideo5 == 6, NA, ideo5)`. The `if_else()` function documentation (see: `?if_else()`) explains that its strict requirements make it more predictable and faster than `ifelse()`.
 
-Before moving on, let's make mutate one aspect of the presidents data. Recall from x.x that some of the variables in `pres_0420` are of the `AsIs` class. Below we convert one of these, `state_po`, which we will eventually use for merging, to a traditional character variable. 
+Before moving on, let's make mutate one aspect of the presidents data. Recall from x.x that some of the variables in `pres_ces` are of the `AsIs` class. Below we convert one of these, `state_po`, which we will eventually use for merging, to a traditional character variable. 
 
 ```{r}
 
-pres_0420 <- pres_0420 %>% mutate(state_po = as.character(state_po))
+pres_ces <- pres_ces %>% mutate(state_po = as.character(state_po))
 
-pres_0420
+pres_ces
 
 ```
 
@@ -434,13 +434,13 @@ We will be mutating throughout this book. Indeed, we are not even done mutating 
 
 ### Renaming columns
 
-Eventually, we will use the two-letter state abbreviations in each dataset to merge the three datasets together. In `pres_0420`, the state abbreviation is named `state_po`. It makes sense to rename it `st` to be consistent with the other datasets. Renaming columns is easy using the `dplyr` function `rename()`. 
+Eventually, we will use the two-letter state abbreviations in each dataset to merge the three datasets together. In `pres_ces`, the state abbreviation is named `state_po`. It makes sense to rename it `st` to be consistent with the other datasets. Renaming columns is easy using the `dplyr` function `rename()`. 
 
 - NB: not necessary and will show example later 
 
 ```{r}
 
-pres_0420 <- pres_0420 %>% rename(st = state_po)
+pres_ces <- pres_ces %>% rename(st = state_po)
 
 ```
 
@@ -572,7 +572,7 @@ Now we turn to the presidents data. Our goal here is to identify the party of th
 
 ```{r}
 
-pres_win <- pres_0420 %>%
+pres_win <- pres_ces %>%
   group_by(st, year) %>% 
   filter(candidatevotes == max(candidatevotes)) %>%
   ungroup()

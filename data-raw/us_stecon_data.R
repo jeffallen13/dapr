@@ -88,3 +88,32 @@ stecon_out <- stecon_df %>%
   ))
 
 write.csv(stecon_out, "data-raw/state_econ.csv", row.names = FALSE)
+
+
+# Regional CPI ------------------------------------------------------
+
+# Northeast, Midwest, South, West
+
+cpi.reg <- c("CUUR0100SA0", "CUUR0200SA0", "CUUR0300SA0", "CUUR0400SA0")
+
+# Inflation
+cpi_df <- map_dfr(cpi.reg, ~ fredr(
+  series_id = .x,
+  frequency = "a",
+  observation_start = as.Date("2000-01-01")
+))
+
+# Formatting
+reg_cpi <- cpi_df %>% 
+  mutate(year = lubridate::year(date)) %>% 
+  rename(cpi = value) %>% 
+  mutate(region = case_when(
+    series_id == "CUUR0100SA0" ~ "Northeast", 
+    series_id == "CUUR0200SA0" ~ "Midwest",
+    series_id == "CUUR0300SA0" ~ "South", 
+    TRUE ~ "West"
+  )) %>% 
+  select(region, year, cpi)
+
+
+saveRDS(reg_cpi, "data-raw/reg_cpi.rds")

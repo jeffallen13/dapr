@@ -19,11 +19,23 @@ options(scipen = 999)
 # Visualization with Base R Graphics
 
 - Need to give HW credit for first two organizing principles
+- NB: see Heiss (URIE) for great breakdown
+
+## Options, controls 
+
+- plot()
+- options
 
 ## Variation within variables
 
+### Discrete 
+
+### Continuous 
+
 ## Covariation between variables
 
-## Time plots
+### Discrete 
 
-## Options and controls
+### Continuous 
+
+## Time plots

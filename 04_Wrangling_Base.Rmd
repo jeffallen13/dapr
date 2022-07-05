@@ -155,6 +155,9 @@ colnames(class_df) <- tolower(colnames(class_df))
 
 Eventually, we will merge a slice of `class_df` with a slice of `vdem_df`. To do so, the two datasets need at least one common variable. In our case, we will merge the datasets on the country code. In section x.x, we elaborate on some nuances of the country code and why it is generally better than merging on country name. In the meantime, it is helpful to change the name of `country_text_id` in `vdem_df` to `code` to match the variable name in `class_df`. Further, let's shorten the `country_name` variable in `vdem_df` to `country`. We can do so using `colnames()` and identifying the positions of these variables in the data frame.
 
+- NB: you can have different names, but that it only makes sense in RDMS when same var plays different roles in different tables
+- Here code plays the same role in both
+
 ```{r colnames-vdem}
 
 colnames(vdem_df)[1:2] <- c("country", "code")
@@ -192,11 +195,11 @@ region_df[region_df$code == "IND",]
 
 Notice that we use a comma after the row identifier. As introduced in x.x, the general form for selecting rows and columns from a data frame is `dfName[rows, columns]`. R defaults to selecting columns. Therefore, if you simply want to select all rows for certain columns, you can omit the comma, as we did in x.x. If you intend to subset any rows, though, a comma is necessary.
 
-As we discovered in x.x, `vdem_df` extends all the way back to 1789. We are only going to work with 20th century data. Therefore, we'll create a new data frame that only retains the V-Dem observations since 2000. While we're at it, let's also select only those columns we need. Again, we'll rename the data frame to something that reminds us of our modifications. In this case, we use `_0021` because the data frame extends from 2000-2021.
+As we discovered in x.x, `vdem_df` extends all the way back to 1789. We are only going to work with 20th century data. Therefore, we'll create a new data frame that only retains the V-Dem observations since 2000. While we're at it, let's also select only those columns we need. Again, we'll rename the data frame to something that reminds us of our modifications. In this case, we use `_20` because the data focus on the 20th century.
 
 ```{r rows-vdem}
 
-vdem_0021 <- vdem_df[vdem_df$year > 1999, c("country", 
+vdem_20 <- vdem_df[vdem_df$year > 1999, c("country", 
                                             "code", 
                                             "year", 
                                             "v2x_polyarchy", 
@@ -208,7 +211,7 @@ The syntax above works well enough. As an alternative, you can use the `subset()
 
 ```{r subset-vdem}
 
-vdem_0021 <- subset(vdem_df, year > 1999, 
+vdem_20 <- subset(vdem_df, year > 1999, 
                     select = c(country, 
                                code, 
                                year, 
@@ -227,7 +230,7 @@ In base R, we use a bit of a round-a-bout method for sorting data. First, we can
 
 ```{r order-vdem}
 
-index <- order(vdem_0021$country, vdem_0021$year)
+index <- order(vdem_20$country, vdem_20$year)
 
 ```
 
@@ -235,15 +238,15 @@ Next, we re-order the data frame by supplying `index` to the rows position of th
 
 ```{r sort-vdem}
 
-vdem_0021 <- vdem_0021[index,]
+vdem_20 <- vdem_20[index,]
 
 ```
 
-Now look at a snapshot of `vdem_0021`.
+Now look at a snapshot of `vdem_20`.
 
 ```{r}
 
-head(vdem_0021)
+head(vdem_20)
 
 ```
 
@@ -251,7 +254,7 @@ Afghanistan is on top, and the years appear to be in ascending order, which is t
 
 ```{r rnames-vdem}
 
-row.names(vdem_0021) <- 1:nrow(vdem_0021)
+row.names(vdem_20) <- 1:nrow(vdem_20)
 
 ```
 
@@ -283,11 +286,11 @@ subset(region_df, region == "North America")
 
 ```
 
-Let's turn to a more complex task dealing with missing values. Take a look at the summary of `vdem_0021`.
+Let's turn to a more complex task dealing with missing values. Take a look at the summary of `vdem_20`.
 
 ```{r summary-vdem0020}
 
-summary(vdem_0021)
+summary(vdem_20)
 
 ```
 
@@ -297,7 +300,7 @@ First, we need to check which observations are missing data. To do this, we can 
 
 ```{r which-rows}
 
-which(is.na(vdem_0021$v2x_libdem))
+which(is.na(vdem_20$v2x_libdem))
 
 ```
 
@@ -305,7 +308,7 @@ We can more directly identify the countries that are missing `v2x_libdem` by plu
 
 ```{r na-vdem}
 
-vdem_0021[which(is.na(vdem_0021$v2x_libdem)), c("country", "year", "v2x_libdem")]
+vdem_20[which(is.na(vdem_20$v2x_libdem)), c("country", "year", "v2x_libdem")]
 
 ```
 
@@ -315,7 +318,7 @@ Before dealing with these missing values, it is important to emphasize that many
 
 ```{r mean-libdem}
 
-mean(vdem_0021$v2x_libdem)
+mean(vdem_20$v2x_libdem)
 
 ```
 
@@ -323,7 +326,7 @@ Fortunately, many functions enable you to specify that `NA`s should be removed w
 
 ```{r mean-libdem-narm}
 
-mean(vdem_0021$v2x_libdem, na.rm = TRUE)
+mean(vdem_20$v2x_libdem, na.rm = TRUE)
 
 ```
 
@@ -331,7 +334,7 @@ Let's return to addressing the missing values. First, it is useful to review the
 
 ```{r bahrain-vector}
 
-(bahrain.libdem <- vdem_0021$v2x_libdem[vdem_0021$country == "Bahrain"])
+(bahrain.libdem <- vdem_20$v2x_libdem[vdem_20$country == "Bahrain"])
 
 ```
 
@@ -349,7 +352,7 @@ A simple approach to imputing the missing values for 2000 and 2001 is to carry t
 
 ```{r impute-bahrain}
 
-vdem_0021[is.na(vdem_0021$v2x_libdem),]$v2x_libdem <- bahrain.libdem[3]
+vdem_20[is.na(vdem_20$v2x_libdem),]$v2x_libdem <- bahrain.libdem[3]
 
 ```
 
@@ -359,7 +362,7 @@ Have a look at `v2x_libdem` for Bahrain now. The first three observations are eq
 
 ```{r bahrain-revisited}
 
-vdem_0021$v2x_libdem[vdem_0021$country == "Bahrain"]
+vdem_20$v2x_libdem[vdem_20$country == "Bahrain"]
 
 ```
 
@@ -394,9 +397,9 @@ It turns out that the V-Dem dataset already includes `v2x_regime`, which, as dis
 
 ```{r regime-integer}
 
-str(vdem_0021$v2x_regime)
+str(vdem_20$v2x_regime)
 
-summary(vdem_0021$v2x_regime)
+summary(vdem_20$v2x_regime)
 
 ```
 
@@ -405,13 +408,13 @@ It would be better if it were a factor variable with the corresponding descripti
 
 ```{r factor-v2xregime}
 
-vdem_0021$v2x_regime <- factor(vdem_0021$v2x_regime,
+vdem_20$v2x_regime <- factor(vdem_20$v2x_regime,
                                labels = c("Closed autocracy",
                                           "Electoral autocracy",
                                           "Electoral democracy",
                                           "Liberal democracy"))
 
-summary(vdem_0021)
+summary(vdem_20)
 
 ```
 
@@ -419,7 +422,9 @@ These are but a modest few applications of variable modification and creation. W
 
 ## Merging
 
-Our next task is to merge `vdem_0021` and `region_df`. That is, we will combine columns from the two data frames by matching observations on a common variable. In database parlance, merging is called **joining** and data frames are called **tables**. The three most common types of joins are defined below according to which observations they preserve between two tables:
+Our next task is to merge `vdem_20` and `region_df`. That is, we will combine columns from the two data frames by matching observations on a common variable. In database parlance, merging is called **joining** and data frames are called **tables**. The three most common types of joins are defined below according to which observations they preserve between two tables:
+
+- NB: use dialogue from SQL book (99-100)
 
 -   **Inner join**: preserve the intersection of tables 1 and 2.
 -   **Left outer join**: preserve all observations in table 1 and append only those observations from table 2 that have matching observations in table 1. The less common right outer join is just the opposite.
@@ -427,11 +432,11 @@ Our next task is to merge `vdem_0021` and `region_df`. That is, we will combine 
 
 Joins are central to Structured Query Language (SQL) programming, which is used in obtaining and working with data stored in databases, particularly Relational Database Management Systems (RDMS)s. Parenthetically, when using R in enterprise settings, it is quite common to pull data directly into R from databases using SQL queries. It is worth reading a bit more about [Joins in SQL](https://en.wikipedia.org/wiki/Join_(SQL)) to understand their functioning and parallels in R. [Chapter 13](https://r4ds.had.co.nz/relational-data.html) of R4DS also contains a good primer on joins and relational data more generally.
 
-In a more sophisticated RDMSs, it is good practice for each table within a database to have a **primary key**, which uniquely identifies each record in the table. `region_df` clearly has a primary key: `code`. But does `vdem_0021`? The answer is more complex. Its primary key is a **composite key**, wherein each record is uniquely identified by the combination of multiple columns--in this case, `code` (or, equivalently, `country`) and `year`. We could create a more explicit primary key by pasting `code` and `year` together, but it is sufficient to recognize that `vdem_0021` has a composite key. Within the context of `vdem_0021`, `code` is a **foreign key** because it uniquely identifies observations in a different table.
+In a more sophisticated RDMSs, it is good practice for each table within a database to have a **primary key**, which uniquely identifies each record in the table. `region_df` clearly has a primary key: `code`. But does `vdem_20`? The answer is more complex. Its primary key is a **composite key**, wherein each record is uniquely identified by the combination of multiple columns--in this case, `code` (or, equivalently, `country`) and `year`. We could create a more explicit primary key by pasting `code` and `year` together, but it is sufficient to recognize that `vdem_20` has a composite key. Within the context of `vdem_20`, `code` is a **foreign key** because it uniquely identifies observations in a different table.
 
 Database terminology may seem esoteric, but joining tables (ie, data frames) is really quite intuitive, so long as you pay close attention to unique identifiers and common variables between tables. Though we are not working with in a database setting here, it is still good to be aware of the terminology and maintain some consistency with database management principles. Someday, you may choose to store your data in a database, so that others can more easily access it.
 
-We are nearly ready to join `vdem_0021` and `region_df`, but before we do, we need to investigate the nature of the `code` variable in the two data frames. As a general matter, merging cross-country data on country codes is safer than merging on country names because country names can differ significantly from dataset to dataset. For example, take a look at how Egypt's name differs between `class_df` and `vdem_df`.
+We are nearly ready to join `vdem_20` and `region_df`, but before we do, we need to investigate the nature of the `code` variable in the two data frames. As a general matter, merging cross-country data on country codes is safer than merging on country names because country names can differ significantly from dataset to dataset. For example, take a look at how Egypt's name differs between `class_df` and `vdem_df`.
 
 ```{r name-egypt}
 
@@ -459,19 +464,19 @@ c(5, 2, 9) %in% c(3, 5, 7)
 
 ```
 
-This is perfect for our case. We want to check which codes exist in `vdem_0021` but not in `region_df`. We accomplish this by subsetting `vdem_0021` where the country codes do not exist in `region_df`. The core of the code below is `vdem_0021[vdem_0021$code %in% region_df$code == FALSE,]`. The rest is for convenience.
+This is perfect for our case. We want to check which codes exist in `vdem_20` but not in `region_df`. We accomplish this by subsetting `vdem_20` where the country codes do not exist in `region_df`. The core of the code below is `vdem_20[vdem_20$code %in% region_df$code == FALSE,]`. The rest is for convenience.
 
 ```{r codes-mismatch}
 
-unique(vdem_0021[vdem_0021$code %in% region_df$code == FALSE, c("country", "code")])
+unique(vdem_20[vdem_20$code %in% region_df$code == FALSE, c("country", "code")])
 
 ```
 
-The country codes for three jurisdictions in `vdem_0021`--Palestine/Gaza, Somaliland, and Zanzibar--do not exist in `region_df`. For Palestine/Gaza, the country code used in `vdem_0021`, PSG, differs from that of `region_df`, PSE. PSE is actually consistent with ISO and, to foreshadow a bit, the codes used in the World Bank data we'll merge later in the book. It makes sense, then, to replace PSG with PSE in `vdem_0021`.
+The country codes for three jurisdictions in `vdem_20`--Palestine/Gaza, Somaliland, and Zanzibar--do not exist in `region_df`. For Palestine/Gaza, the country code used in `vdem_20`, PSG, differs from that of `region_df`, PSE. PSE is actually consistent with ISO and, to foreshadow a bit, the codes used in the World Bank data we'll merge later in the book. It makes sense, then, to replace PSG with PSE in `vdem_20`.
 
 ```{r replace-pse}
 
-vdem_0021[vdem_0021$code == "PSG",]$code <- "PSE"
+vdem_20[vdem_20$code == "PSG",]$code <- "PSE"
 
 ```
 
@@ -479,33 +484,35 @@ The World Bank does not maintain economic data for Somaliland and Zanzibar. Sinc
 
 ```{r filter-som-zan}
 
-vdem_0021 <- subset(vdem_0021, code != "SML" & code != "ZZB")
+vdem_20 <- subset(vdem_20, code != "SML" & code != "ZZB")
 
 ```
 
 All of this raises a complex and unsettled question: what is a country? World Bank data oscillates between labeling observations as *countries* and as *economies*. The [World Bank Country and Lending Groups](https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups) webpage sheds a bit more light on this: "The term country, used interchangeably with economy, does not imply political independence but refers to any territory for which authorities report separate social or economic statistics." A number of countries tracked by V-Dem are also not recognized as countries by certain international bodies--for example, the [United Nations](https://www.un.org/en/about-us/member-states). It is worth reading further about this debate in the political science and international law literature. For now, with the exceptions identified above, we will use the list of countries tracked by V-Dem as our base.
 
-Finally, we are ready to join `vdem_0021` and `region_df`. The base R function for joining data is `merge()`. `merge()` defaults to an inner join. Technically, it uses a "natural" join, which is a special case of an inner join that only preserves one copy of common columns. In some disciplines, the inner join is used most frequently. However, when working with economic and political data, the left outer join ("left join" for short) is arguably the most common joining pattern.
+Finally, we are ready to join `vdem_20` and `region_df`. The base R function for joining data is `merge()`. `merge()` defaults to an inner join. Technically, it uses a "natural" join, which is a special case of an inner join that only preserves one copy of common columns. In some disciplines, the inner join is used most frequently. However, when working with economic and political data, the left outer join ("left join" for short) is arguably the most common joining pattern.
 
-Below we merge `vdem_0021` and `region_df` on `code`, which is specified through the `by` argument. We also specify a left join through `all.x = TRUE`. The resulting data frame will contain all the records from `vdem_0021` and each record's associated region from `region_df`.
+Below we merge `vdem_20` and `region_df` on `code`, which is specified through the `by` argument. We also specify a left join through `all.x = TRUE`. The resulting data frame will contain all the records from `vdem_20` and each record's associated region from `region_df`.
 
 ```{r merge-vdem}
 
-vdem_0021 <- merge(vdem_0021, region_df, by = "code", all.x = TRUE)
+vdem_20 <- merge(vdem_20, region_df, by = "code", all.x = TRUE)
 
 ```
 
 In our case, specifying `by = "code"` is optional because there is only one common variable between the two data frames. In many cases, though, it is necessary to merge on multiple variables. In such cases, we would need to identify the correct variables in `by`. For example, if we were merging on `code` and `year`, we would specify `by = c("code", "year")`.
 
-In viewing the summary of `vdem_0021`, we see that the data frame now contains the `region` and `region_abb` variables.
+In viewing the summary of `vdem_20`, we see that the data frame now contains the `region` and `region_abb` variables.
 
 ```{r}
 
-summary(vdem_0021)
+summary(vdem_20)
 
 ```
 
-The fact that there are no missing values for `region` or `region_abb` indicates that each observation in `vdem_0021` had a matching region. This is certainly not always the case. When executing a left join, it is common for some observations in table 1 to not have a matching observation from table 2. In such cases, the table 1 observations that do not have matched observations will have a missing value for the appended columns.
+The fact that there are no missing values for `region` or `region_abb` indicates that each observation in `vdem_20` had a matching region. This is certainly not always the case. When executing a left join, it is common for some observations in table 1 to not have a matching observation from table 2. In such cases, the table 1 observations that do not have matched observations will have a missing value for the appended columns.
+
+## Reshaping
 
 ## Grouping and summarizing
 
@@ -515,7 +522,7 @@ We begin by exploring the mean of `v2x_polyarchy` for each region using `tapply(
 
 ```{r tapply-polyarchy}
 
-tapply(vdem_0021$v2x_polyarchy, vdem_0021$region, mean)
+tapply(vdem_20$v2x_polyarchy, vdem_20$region, mean)
 
 ```
 
@@ -523,7 +530,7 @@ We can do the same for `v2x_libdem`, but below we tighten up the code using `wit
 
 ```{r tapply-region}
 
-(libdem.region <- round(with(vdem_0021, tapply(v2x_libdem, region, mean)), 2))
+(libdem.region <- round(with(vdem_20, tapply(v2x_libdem, region, mean)), 2))
 
 ```
 
@@ -531,7 +538,7 @@ It would be interesting to explore the gap between the strength of electoral dem
 
 ```{r difference-tapple}
 
-polyarchy.region <- round(with(vdem_0021, tapply(v2x_polyarchy, region, mean)), 2)
+polyarchy.region <- round(with(vdem_20, tapply(v2x_polyarchy, region, mean)), 2)
 
 polyarchy.region - libdem.region
 
@@ -543,7 +550,7 @@ We can accomplish a similar task through the `aggregate()` function, which uses 
 
 ```{r aggregate-libdem}
 
-aggregate(v2x_libdem ~ region_abb, data = vdem_0021, mean)
+aggregate(v2x_libdem ~ region_abb, data = vdem_20, mean)
 
 ```
 
@@ -552,7 +559,7 @@ aggregate(v2x_libdem ~ region_abb, data = vdem_0021, mean)
 ```{r}
 
 polyarchy_region <- 
-  aggregate(v2x_polyarchy ~ year + region_abb, data = vdem_0021, mean)
+  aggregate(v2x_polyarchy ~ year + region_abb, data = vdem_20, mean)
 
 head(polyarchy_region, 10)
 
@@ -570,7 +577,7 @@ Our tables thus far have have summarized the mean of numeric variables across fa
 
 ```{r regime-reg}
 
-(regime.reg <- with(vdem_0021, 
+(regime.reg <- with(vdem_20, 
                     table("Region" = region_abb, 
                           "Regime Type" = v2x_regime)))
 
@@ -598,11 +605,11 @@ Before finalizing a dataset, you may want rearrange the variables in a manner th
 
 ```{r column-arrange}
 
-vdem_0021 <- vdem_0021[c("code", "country", "year", "region", 
+vdem_20 <- vdem_20[c("code", "country", "year", "region", 
                          "region_abb","v2x_polyarchy", "v2x_libdem", 
                          "v2x_regime")]
 
-summary(vdem_0021)
+summary(vdem_20)
 
 ```
 
@@ -610,7 +617,7 @@ Finally, we save our dataset to the data folder as an RDS file, which preserves 
 
 ```{r save-vdem}
 
-saveRDS(vdem_0021, "data/vdem_0021.rds")
+saveRDS(vdem_20, "data/vdem_20.rds")
 
 ```
 
